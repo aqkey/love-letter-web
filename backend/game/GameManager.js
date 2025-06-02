@@ -6,6 +6,7 @@ class GameManager {
     this.deck = [];
     this.turnOrder = [];
     this.currentTurn = 0;
+    this.playedCards = [];
     this.gameStarted = false;
   }
 
@@ -62,6 +63,11 @@ class GameManager {
 
   playCard(playerId, cardIndex) {
     const card = this.players[playerId].hand.splice(cardIndex, 1)[0];
+    // 提示済みのcardの履歴に出したカードを追加する
+    this.playedCards.push({
+      player: this.players[playerId].name,
+      card: card
+    })
     // TODO: カードの効果を処理する（MVPではスキップでもOK）
     return card;
   }

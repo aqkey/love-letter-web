@@ -85,6 +85,7 @@ io.on("connection", (socket) => {
       io.to(roomId).emit("cardPlayed", {
         player: game.players[playerId].name,
         card: playedCard,
+        playedCards: game.playedCards,
       });
       game.nextTurn();
       const currentPlayerId = game.getCurrentPlayerId();
