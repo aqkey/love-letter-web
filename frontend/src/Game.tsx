@@ -30,24 +30,35 @@ const Game: React.FC<GameProps> = ({
   const [errorMessage, setErrorMessage] = useState<string>("");
 
   useEffect(() => {
+    // ゲーム開始時
     socket.on("gameStarted", (data) => {
       console.log("Game started:", data);
       setCurrentPlayer(data.currentPlayer);
     });
 
+    // 最初の手札受け取り
+    socket.on("initialHand", (hand) => {
+      console.log("Initial hand:", hand);
+      setHand(hand);
+    });
+
+    // カードを引いたとき
     socket.on("cardDrawn", (card) => {
       setHand((prev) => [...prev, card]);
     });
 
+    // カードを出した時
     socket.on("cardPlayed", (data) => {
       console.log(`${data.player} played ${data.card.name}`);
       setPlayedCards(data.playedCards);
     });
 
+    //　ターンを更新したとき
     socket.on("nextTurn", (data) => {
       setCurrentPlayer(data.currentPlayer);
     });
 
+    // エラーメッセージ
     socket.on("errorMessage", (message) => {
       console.error("Error:", message);
       setErrorMessage(message);
@@ -97,9 +108,12 @@ const Game: React.FC<GameProps> = ({
           <button
             key={index}
             onClick={() => handlePlay(index)}
-            disabled={playerName !== currentPlayer}
+            disabled={
+              playerName !== currentPlayer || hand.length < 2
+              // 自分の手版もしくは、自分の手札が2枚ないと出せない
+            }
             className={`bg-pink-500 text-white px-4 py-2 rounded ${
-              playerName !== currentPlayer
+              playerName !== currentPlayer || hand.length < 2
                 ? "opacity-50 cursor-not-allowed"
                 : ""
             }`}

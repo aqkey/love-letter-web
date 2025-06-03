@@ -42,6 +42,13 @@ io.on("connection", (socket) => {
     const game = games[roomId];
     if (game) {
       game.startGame();
+      // 各プレイヤーに自分の手札を送信
+       Object.keys(game.players).forEach(playerId => {
+      const player = game.players[playerId];
+      io.to(playerId).emit("initialHand", player.hand);
+      });
+
+      // 全員にゲーム開始通知
       const currentPlayerId = game.getCurrentPlayerId();
       io.to(roomId).emit("gameStarted", {
         players: Object.values(game.players).map((p) => ({
@@ -87,6 +94,11 @@ io.on("connection", (socket) => {
         card: playedCard,
         playedCards: game.playedCards,
       });
+      if (!playedCard) {
+        // カードが出せなかった（drawCardしてない、脱落済みなど）
+        socket.emit("errorMessage", "カードを出せません。カードを引いてから出してください。");
+        return;
+      }
       game.nextTurn();
       const currentPlayerId = game.getCurrentPlayerId();
       io.to(roomId).emit("nextTurn", {

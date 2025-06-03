@@ -1,4 +1,15 @@
 // backend/game/GameManager.js
+const CARD_LIST = [
+  { id: 1, name: "兵士", enName: "soldier", count: 5 },
+  { id: 2, name: "道化", enName: "clown", count: 2 },
+  { id: 3, name: "騎士", enName: "knight", count: 2 },
+  { id: 4, name: "僧侶", enName: "monk", count: 2 },
+  { id: 5, name: "魔術師", enName: "sorcerer", count: 2 },
+  { id: 6, name: "将軍", enName: "general", count: 1 },
+  { id: 7, name: "大臣", enName: "minister", count: 1 },
+  { id: 8, name: "姫", enName: "princess", count: 1 },
+];
+
 class GameManager {
   constructor(roomId) {
     this.roomId = roomId;
@@ -16,31 +27,42 @@ class GameManager {
       name,
       hand: [],
       isEliminated: false,
+      isProtected: false,
+      hasDrawnCard: false,
     };
     this.turnOrder.push(socketId);
     return true;
   }
 
   startGame() {
-    this.deck = this.createDeck();
-    this.shuffleDeck();
-    // 配布
-    for (const playerId of Object.keys(this.players)) {
-      this.players[playerId].hand.push(this.deck.pop());
-    }
+    this.createDeck();
+    // 1枚除外
+    this.deck.pop();
+    // 各プレイヤーに1枚配る
+    Object.keys(this.players).forEach(socketId => {
+      this.players[socketId].hand = [];
+      this.players[socketId].isEliminated = false;
+      this.players[socketId].isProtected = false;
+      this.players[socketId].hasDrawnCard = false;
+      const card = this.deck.pop();
+      this.players[socketId].hand.push(card);
+    });
     this.gameStarted = true;
   }
 
+
   createDeck() {
-    // 最小限のカード（兵士1x5、僧侶x2、騎士x2、侍女x2、王子x2、王女x1）
-    return [
-      ...Array(5).fill({ id: 1, name: "兵士" }),
-      ...Array(2).fill({ id: 2, name: "僧侶" }),
-      ...Array(2).fill({ id: 3, name: "騎士" }),
-      ...Array(2).fill({ id: 4, name: "侍女" }),
-      ...Array(2).fill({ id: 5, name: "王子" }),
-      { id: 8, name: "王女" },
-    ];
+    this.deck = [];
+    CARD_LIST.forEach(card => {
+      for (let i = 0; i < card.count; i++) {
+        this.deck.push({
+          id: card.id,
+          name: card.name,
+          enName: card.enName
+        });
+      }
+    });
+    this.shuffleDeck();
   }
 
   shuffleDeck() {
@@ -51,24 +73,83 @@ class GameManager {
   }
 
   getCurrentPlayerId() {
+    // 脱落しているプレイヤーをスキップ
+    while (this.players[this.turnOrder[this.currentTurn % this.turnOrder.length]].isEliminated) {
+      this.currentTurn++;
+    }
     return this.turnOrder[this.currentTurn % this.turnOrder.length];
   }
 
   drawCard(playerId) {
-    if (this.deck.length === 0) return null;
+    const player = this.players[playerId];
+    if (!player || player.isEliminated) return null;
+
+    // すでに2枚持っていたら引けない
+    if (player.hand.length >= 2) {
+      console.log(`${player.name} はすでにカードを2枚持っています。`);
+      return null;
+    }
+
+    // 山札がない場合
+    if (!this.deck.length) {
+      console.log(`山札がありません。`);
+      return null;
+    }
+
     const card = this.deck.pop();
-    this.players[playerId].hand.push(card);
+    player.hand.push(card);
+    player.hasDrawnCard = true; 
     return card;
   }
 
-  playCard(playerId, cardIndex) {
-    const card = this.players[playerId].hand.splice(cardIndex, 1)[0];
-    // 提示済みのcardの履歴に出したカードを追加する
+  playCard(playerId, cardIndex, targetPlayerId, guessCardId) {
+    const player = this.players[playerId];
+    // debug
+    if (!player) {
+      console.log(`playerId: ${playerId} のプレイヤーが見つかりません。`);
+      return null;
+    }
+    // カードを引いたかどうかチェック、引いていない場合はカードを出させない
+    if (!player.hasDrawnCard) {
+      console.log(`${player.name} はまだカードを引いていないため出せません。`);
+      return null;
+    }
+    // 
+    if (!player.hand || player.hand.length <= cardIndex) return null;
+    
+    const card = player.hand.splice(cardIndex, 1)[0];
+    if (!card) return null;
+
     this.playedCards.push({
       player: this.players[playerId].name,
-      card: card
-    })
-    // TODO: カードの効果を処理する（MVPではスキップでもOK）
+      card: card,
+    });
+
+    // カード効果処理
+    switch (card.id) {
+      case 1: // 兵士（soldier）
+        if (
+          guessCardId &&
+          targetPlayerId &&
+          this.players[targetPlayerId] &&
+          !this.players[targetPlayerId].isEliminated &&
+          !this.players[targetPlayerId].isProtected
+        ) {
+          const targetHand = this.players[targetPlayerId].hand[0];
+          if (targetHand.id === guessCardId) {
+            this.players[targetPlayerId].isEliminated = true;
+            console.log(`${this.players[targetPlayerId].name} は脱落しました！（兵士の効果）`);
+          } else {
+            console.log(`${this.players[targetPlayerId].name} はセーフでした。`);
+          }
+        }
+        break;
+
+      // TODO: 他のカード（道化、騎士、僧侶、魔術師、将軍、大臣、姫）の処理を追加
+      default:
+        console.log(`カードID ${card.id} の効果はまだ実装されていません。`);
+    }
+    player.hasDrawnCard = false; // カードを出したらフラグリセット
     return card;
   }
 
