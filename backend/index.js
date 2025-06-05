@@ -26,13 +26,18 @@ io.on("connection", (socket) => {
     const success = games[roomId].addPlayer(socket.id, name);
     if (success) {
       socket.join(roomId);
+      const tmp = socket.id//後で消す
       const roomSockets = await io.in(roomId).fetchSockets();
       const userList = roomSockets.map((s) => s.id);
       console.log(`Room ${roomId} に現在joinしているユーザー一覧:`, userList);
+      console.log(`追加したプレイヤーは:`, games[roomId].players[tmp].id);
       io.to(roomId).emit("roomUpdate", {
         players: Object.values(games[roomId].players).map((p) => ({
+          id: p.id,
           name: p.name,
           isEliminated: p.isEliminated,
+          isProtected: p.isProtected,
+          ishasDrawnCard: p.ishasDrawnCard
         })),
       });
     }
@@ -52,6 +57,7 @@ io.on("connection", (socket) => {
       const currentPlayerId = game.getCurrentPlayerId();
       io.to(roomId).emit("gameStarted", {
         players: Object.values(game.players).map((p) => ({
+          id: p.id,
           name: p.name,
           handCount: p.hand.length,
         })),
@@ -78,7 +84,7 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("playCard", ({ roomId, cardIndex }) => {
+  socket.on("playCard", ({ roomId, cardIndex,targetPlayerId, guessCardId, }) => {
     const game = games[roomId];
     if (game) {
       const playerId = socket.id;
@@ -88,7 +94,7 @@ io.on("connection", (socket) => {
       socket.emit("errorMessage", "今はあなたのターンではありません。");
       return;
       }
-      const playedCard = game.playCard(playerId, cardIndex);
+      const playedCard = game.playCard(playerId, cardIndex, targetPlayerId, guessCardId, io);
       io.to(roomId).emit("cardPlayed", {
         player: game.players[playerId].name,
         card: playedCard,

@@ -1,5 +1,10 @@
 // backend/game/GameManager.js
 const CARD_LIST = [
+  { id: 1, name: "兵士", enName: "soldier", count: 1 },
+  { id: 2, name: "道化", enName: "clown", count: 10 }
+];
+/*
+const CARD_LIST = [
   { id: 1, name: "兵士", enName: "soldier", count: 5 },
   { id: 2, name: "道化", enName: "clown", count: 2 },
   { id: 3, name: "騎士", enName: "knight", count: 2 },
@@ -9,6 +14,7 @@ const CARD_LIST = [
   { id: 7, name: "大臣", enName: "minister", count: 1 },
   { id: 8, name: "姫", enName: "princess", count: 1 },
 ];
+*/
 
 class GameManager {
   constructor(roomId) {
@@ -24,6 +30,7 @@ class GameManager {
   addPlayer(socketId, name) {
     if (Object.keys(this.players).length >= 5) return false;
     this.players[socketId] = {
+      id: socketId,
       name,
       hand: [],
       isEliminated: false,
@@ -102,7 +109,7 @@ class GameManager {
     return card;
   }
 
-  playCard(playerId, cardIndex, targetPlayerId, guessCardId) {
+  playCard(playerId, cardIndex, targetPlayerId, guessCardId, io) {
     const player = this.players[playerId];
     // debug
     if (!player) {
@@ -116,7 +123,7 @@ class GameManager {
     }
     // 
     if (!player.hand || player.hand.length <= cardIndex) return null;
-    
+
     const card = player.hand.splice(cardIndex, 1)[0];
     if (!card) return null;
 
@@ -142,6 +149,22 @@ class GameManager {
           } else {
             console.log(`${this.players[targetPlayerId].name} はセーフでした。`);
           }
+        }
+        break;
+      case 2: // 道化（clown）
+        if (
+          targetPlayerId &&
+          this.players[targetPlayerId] &&
+          !this.players[targetPlayerId].isEliminated &&
+          !this.players[targetPlayerId].isProtected
+        ) {
+          const targetHand = this.players[targetPlayerId].hand[0];
+          // io経由で直接プレイヤーに送る。playerIdはsocket.id
+          console.log(`[seeHand emit] to ${playerId} :`, this.players[targetPlayerId].name, targetHand);
+          io.to(playerId).emit("seeHand", {
+            targetName: this.players[targetPlayerId].name,
+            card: targetHand,
+          });
         }
         break;
 
