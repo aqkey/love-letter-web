@@ -24,6 +24,13 @@ interface PlayerInfo {
   id: string;
 }
 
+interface CardPlayedData {
+  playerId: string;
+  player: string;
+  card: Card;
+  playedCards: PlayedCardEntry[];
+}
+
 const Game: React.FC<GameProps> = ({
   setScreen,
   roomId,
@@ -74,12 +81,14 @@ const Game: React.FC<GameProps> = ({
       setHand((prev) => [...prev, card]);
     });
 
-    socket.on("cardPlayed", (data) => {
+    socket.on("cardPlayed", (data: CardPlayedData) => {
       if (!data || !data.card) return;
       setPlayedCards(data.playedCards);
-      setHand((prev) =>
-        prev.filter((_, i) => i !== prev.findIndex((c) => c.id === data.card.id && c.name === data.card.name))
-      );
+      if (data.playerId === socket.id) {
+        setHand((prev) =>
+          prev.filter((_, i) => i !== prev.findIndex((c) => c.id === data.card.id && c.name === data.card.name))
+        );
+      }
     });
 
     socket.on("nextTurn", (data) => {
