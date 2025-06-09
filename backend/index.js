@@ -45,10 +45,11 @@ io.on("connection", (socket) => {
 
   socket.on("startGame", ({ roomId }) => {
     const game = games[roomId];
+    logPlayerHands(game);
     if (game) {
       game.startGame();
       // 各プレイヤーに自分の手札を送信
-       Object.keys(game.players).forEach(playerId => {
+      Object.keys(game.players).forEach(playerId => {
       const player = game.players[playerId];
       io.to(playerId).emit("initialHand", player.hand);
       });
@@ -69,6 +70,7 @@ io.on("connection", (socket) => {
 
   socket.on("drawCard", ({ roomId }) => {
     const game = games[roomId];
+    
     if (game) {
       const playerId = socket.id;
       if (playerId !== game.getCurrentPlayerId()) {
@@ -79,6 +81,7 @@ io.on("connection", (socket) => {
       }
       const drawnCard = game.drawCard(playerId);
       if (drawnCard) {
+        logPlayerHands(game);
         socket.emit("cardDrawn", drawnCard);
       }
     }
@@ -95,6 +98,7 @@ io.on("connection", (socket) => {
       return;
       }
       const playedCard = game.playCard(playerId, cardIndex, targetPlayerId, guessCardId, io);
+      logPlayerHands(game,roomId);
       io.to(roomId).emit("cardPlayed", {
         player: game.players[playerId].name,
         card: playedCard,
@@ -118,6 +122,24 @@ io.on("connection", (socket) => {
     // TODO: プレイヤー削除処理
   });
 });
+
+function logPlayerHands(game) {
+  if (!game) {
+    console.log(`GAMEが存在しません。`);
+    return;
+  }
+  console.log(`=== Room ${game.roomId} のプレイヤー手札一覧 ===`);
+  Object.keys(game.players).forEach(playerId => {
+      const player = game.players[playerId];
+      if (player.hand && player.hand.length > 0){
+        const handSummary = player.hand.map(card => card.name).join(", ");
+        console.log(`  ${player.name} (${player.id}): [${handSummary}]`);
+      }else{
+        console.log(`${player.name} (${player.id}): カードがありません。`)
+      }
+  });
+  console.log("=========================================");
+}
 
 const PORT = 4000;
 server.listen(PORT, () => {
