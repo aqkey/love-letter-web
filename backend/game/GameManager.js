@@ -145,7 +145,21 @@ class GameManager {
           const targetHand = this.players[targetPlayerId].hand[0];
           if (targetHand.id === guessCardId) {
             this.players[targetPlayerId].isEliminated = true;
-            console.log(`${this.players[targetPlayerId].name} は脱落しました！（兵士の効果）`);
+            console.log(
+              `${this.players[targetPlayerId].name} は脱落しました！（兵士の効果）`
+            );
+            io.to(this.roomId).emit("playerEliminated", {
+              playerId: targetPlayerId,
+              name: this.players[targetPlayerId].name,
+            });
+            const alive = Object.values(this.players).filter(
+              (p) => !p.isEliminated
+            );
+            if (alive.length === 1) {
+              io.to(this.roomId).emit("gameEnded", {
+                winner: alive[0].name,
+              });
+            }
           } else {
             console.log(`${this.players[targetPlayerId].name} はセーフでした。`);
           }
