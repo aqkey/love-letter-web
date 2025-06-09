@@ -100,6 +100,7 @@ io.on("connection", (socket) => {
       const playedCard = game.playCard(playerId, cardIndex, targetPlayerId, guessCardId, io);
       logPlayerHands(game,roomId);
       io.to(roomId).emit("cardPlayed", {
+        playerId: playerId,
         player: game.players[playerId].name,
         card: playedCard,
         playedCards: game.playedCards,
