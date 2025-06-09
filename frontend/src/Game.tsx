@@ -48,6 +48,16 @@ const Game: React.FC<GameProps> = ({
   const [showTargetModal, setShowTargetModal] = useState(false);
   const [selectCardIndex, setSelectCardIndex] = useState<number | null>(null);
 
+  // 兵士カード用
+  const [showSoldierModal, setShowSoldierModal] = useState(false);
+  const [soldierTargetId, setSoldierTargetId] = useState<string>("");
+  const [guessCardId, setGuessCardId] = useState<number | null>(null);
+
+  const CARD_OPTIONS: Card[] = [
+    { id: 1, name: "兵士", enName: "soldier" },
+    { id: 2, name: "道化", enName: "clown" },
+  ];
+
   // 手札を見るモーダル
   const [showSeeHandModal, setShowSeeHandModal] = useState(false);
   const [seeHandInfo, setSeeHandInfo] = useState<{ targetName: string; card: Card } | null>(null);
@@ -127,15 +137,17 @@ const Game: React.FC<GameProps> = ({
   const handlePlay = (index: number) => {
     const card = hand[index];
     if (card.id === 2) {
-      console.log('ターゲット選択モーダルを出す');
-      otherPlayers.forEach((p) => {
-        console.log(`プレイヤー名: ${p.name}, id: ${p.id}`);
-      });
-      // 道化カードの場合のみターゲット選択UI表示
-      
+      // 道化カードはターゲット選択のみ
       setSelectCardIndex(index);
       setShowTargetModal(true);
-      
+      return;
+    }
+    if (card.id === 1) {
+      // 兵士カードはターゲットと宣言するカードを選ぶ
+      setSelectCardIndex(index);
+      setShowSoldierModal(true);
+      setSoldierTargetId("");
+      setGuessCardId(null);
       return;
     }
     socket.emit("playCard", {
@@ -148,7 +160,7 @@ const Game: React.FC<GameProps> = ({
 
   // ターゲット決定（道化のとき）
   const handleSelectTarget = (targetId: string) => {
-    console.log("選択されたプレイヤーID:", targetId);  
+    console.log("選択されたプレイヤーID:", targetId);
     if (selectCardIndex === null) return;
     socket.emit("playCard", {
       roomId,
@@ -158,6 +170,21 @@ const Game: React.FC<GameProps> = ({
     });
     setShowTargetModal(false);
     setSelectCardIndex(null);
+  };
+
+  // 兵士使用時の決定
+  const handlePlaySoldier = () => {
+    if (selectCardIndex === null || !soldierTargetId || guessCardId === null) return;
+    socket.emit("playCard", {
+      roomId,
+      cardIndex: selectCardIndex,
+      targetPlayerId: soldierTargetId,
+      guessCardId: guessCardId,
+    });
+    setShowSoldierModal(false);
+    setSelectCardIndex(null);
+    setSoldierTargetId("");
+    setGuessCardId(null);
   };
 
   // 自分以外のプレイヤー
@@ -221,6 +248,66 @@ const Game: React.FC<GameProps> = ({
             <button
               onClick={() => setShowTargetModal(false)}
               className="text-gray-600 mt-2"
+            >
+              キャンセル
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 兵士カード用モーダル */}
+      {showSoldierModal && (
+        <div className="fixed z-10 left-0 top-0 w-full h-full bg-black bg-opacity-30 flex items-center justify-center">
+          <div className="bg-white p-4 rounded shadow">
+            <h3 className="mb-2">ターゲットと宣言するカードを選んでください</h3>
+            <div className="mb-2">
+              <p className="mb-1">相手</p>
+              <ul>
+                {otherPlayers.map((p) => (
+                  <li key={p.id} className="mb-1">
+                    <label>
+                      <input
+                        type="radio"
+                        name="soldierTarget"
+                        value={p.id}
+                        onChange={() => setSoldierTargetId(p.id)}
+                        className="mr-1"
+                      />
+                      {p.name}
+                    </label>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="mb-2">
+              <p className="mb-1">宣言するカード</p>
+              <ul>
+                {CARD_OPTIONS.map((c) => (
+                  <li key={c.id} className="mb-1">
+                    <label>
+                      <input
+                        type="radio"
+                        name="guessCard"
+                        value={c.id}
+                        onChange={() => setGuessCardId(c.id)}
+                        className="mr-1"
+                      />
+                      {c.name}
+                    </label>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <button
+              onClick={handlePlaySoldier}
+              disabled={!soldierTargetId || guessCardId === null}
+              className="bg-blue-500 text-white px-4 py-2 rounded mr-2 disabled:opacity-50"
+            >
+              決定
+            </button>
+            <button
+              onClick={() => setShowSoldierModal(false)}
+              className="text-gray-600"
             >
               キャンセル
             </button>
