@@ -54,6 +54,10 @@ const Game: React.FC<GameProps> = ({
   const [soldierTargetId, setSoldierTargetId] = useState<string>("");
   const [guessCardId, setGuessCardId] = useState<number | null>(null);
 
+  // 魔術師カード用
+  const [showSorcererModal, setShowSorcererModal] = useState(false);
+  const [sorcererTargetId, setSorcererTargetId] = useState<string>("");
+
   const CARD_OPTIONS: Card[] = [
     { id: 1, name: "兵士", enName: "soldier" },
     { id: 2, name: "道化", enName: "clown" },
@@ -105,6 +109,10 @@ const Game: React.FC<GameProps> = ({
       setHand((prev) => [...prev, card]);
     });
 
+    socket.on("replaceCard", (card) => {
+      setHand([card]);
+    });
+
     socket.on("cardPlayed", (data: CardPlayedData) => {
       if (!data || !data.card) return;
       setPlayedCards(data.playedCards);
@@ -151,6 +159,7 @@ const Game: React.FC<GameProps> = ({
       socket.off("roomUpdate");
       socket.off("initialHand");
       socket.off("cardDrawn");
+      socket.off("replaceCard");
       socket.off("cardPlayed");
       socket.off("nextTurn");
       socket.off("seeHand");
@@ -179,6 +188,12 @@ const Game: React.FC<GameProps> = ({
       setShowSoldierModal(true);
       setSoldierTargetId("");
       setGuessCardId(null);
+      return;
+    }
+    if (card.id === 5) {
+      setSelectCardIndex(index);
+      setShowSorcererModal(true);
+      setSorcererTargetId("");
       return;
     }
     socket.emit("playCard", {
@@ -218,10 +233,24 @@ const Game: React.FC<GameProps> = ({
     setGuessCardId(null);
   };
 
+  const handlePlaySorcerer = () => {
+    if (selectCardIndex === null || !sorcererTargetId) return;
+    socket.emit("playCard", {
+      roomId,
+      cardIndex: selectCardIndex,
+      targetPlayerId: sorcererTargetId,
+      guessCardId: null,
+    });
+    setShowSorcererModal(false);
+    setSelectCardIndex(null);
+    setSorcererTargetId("");
+  };
+
   // 自分以外で脱落していないプレイヤー
   const otherPlayers = players.filter(
     (p) => p.name !== playerName && !p.isEliminated
   );
+  const alivePlayers = players.filter((p) => !p.isEliminated);
 
   return (
     <div className="max-w-md mx-auto bg-white p-4 rounded shadow">
@@ -230,6 +259,7 @@ const Game: React.FC<GameProps> = ({
       {errorMessage && (
         <p className="text-red-500 font-bold mb-2">{errorMessage}</p>
       )}
+
 
       {playerName === currentPlayer ? (
         <button
@@ -340,6 +370,44 @@ const Game: React.FC<GameProps> = ({
             </button>
             <button
               onClick={() => setShowSoldierModal(false)}
+              className="text-gray-600"
+            >
+              キャンセル
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 魔術師カード用モーダル */}
+      {showSorcererModal && (
+        <div className="fixed z-10 left-0 top-0 w-full h-full bg-black bg-opacity-30 flex items-center justify-center">
+          <div className="bg-white p-4 rounded shadow">
+            <h3 className="mb-2">対象プレイヤーを選んでください</h3>
+            <ul>
+              {alivePlayers.map((p) => (
+                <li key={p.id} className="mb-1">
+                  <label>
+                    <input
+                      type="radio"
+                      name="sorcererTarget"
+                      value={p.id}
+                      onChange={() => setSorcererTargetId(p.id)}
+                      className="mr-1"
+                    />
+                    {p.name}
+                  </label>
+                </li>
+              ))}
+            </ul>
+            <button
+              onClick={handlePlaySorcerer}
+              disabled={!sorcererTargetId}
+              className="bg-blue-500 text-white px-4 py-2 rounded mr-2 disabled:opacity-50"
+            >
+              決定
+            </button>
+            <button
+              onClick={() => setShowSorcererModal(false)}
               className="text-gray-600"
             >
               キャンセル

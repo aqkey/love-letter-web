@@ -1,7 +1,8 @@
 // backend/game/GameManager.js
 const CARD_LIST = [
   { id: 1, name: "兵士", enName: "soldier", count: 1 },
-  { id: 2, name: "道化", enName: "clown", count: 10 }
+  { id: 2, name: "道化", enName: "clown", count: 10 },
+  { id: 5, name: "魔術師", enName: "sorcerer", count: 2 },
 ];
 /*
 const CARD_LIST = [
@@ -181,7 +182,7 @@ class GameManager {
           });
         }
         break;
-      case 3: // 騎士（knight）
+      case 3: // 騎士（knight）Add commentMore actions
         if (
           targetPlayerId &&
           this.players[targetPlayerId] &&
@@ -214,6 +215,30 @@ class GameManager {
               io.to(this.roomId).emit("gameEnded", {
                 winner: alive[0].name,
               });
+            }
+          }
+        }
+        break;
+      case 5: // 魔術師（sorcerer）
+        {
+          const targetId = targetPlayerId || playerId;
+          if (
+            targetId &&
+            this.players[targetId] &&
+            !this.players[targetId].isEliminated &&
+            !this.players[targetId].isProtected
+          ) {
+            const discarded = this.players[targetId].hand.splice(0, 1)[0];
+            if (discarded) {
+              this.playedCards.push({
+                player: this.players[targetId].name,
+                card: discarded,
+              });
+            }
+            if (this.deck.length) {
+              const newCard = this.deck.pop();
+              this.players[targetId].hand = [newCard];
+              io.to(targetId).emit("replaceCard", newCard);
             }
           }
         }
