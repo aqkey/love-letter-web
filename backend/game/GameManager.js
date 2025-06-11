@@ -1,14 +1,14 @@
 // backend/game/GameManager.js
 
 const CARD_LIST = [
-  { id: 1, name: "兵士", enName: "soldier", count: 5 },
-  { id: 2, name: "道化", enName: "clown", count: 2 },
-  { id: 3, name: "騎士", enName: "knight", count: 2 },
-  { id: 4, name: "僧侶", enName: "monk", count: 2 },
-  { id: 5, name: "魔術師", enName: "sorcerer", count: 2 },
-  { id: 6, name: "将軍", enName: "general", count: 1 },
-  { id: 7, name: "大臣", enName: "minister", count: 1 },
-  { id: 8, name: "姫", enName: "princess", count: 1 },
+  { id: 1, name: "兵士", enName: "soldier", count: 5, cost: 1 },
+  { id: 2, name: "道化", enName: "clown", count: 2, cost: 2 },
+  { id: 3, name: "騎士", enName: "knight", count: 2, cost: 3 },
+  { id: 4, name: "僧侶", enName: "monk", count: 2, cost: 4 },
+  { id: 5, name: "魔術師", enName: "sorcerer", count: 2, cost: 5 },
+  { id: 6, name: "将軍", enName: "general", count: 1, cost: 6 },
+  { id: 7, name: "大臣", enName: "minister", count: 1, cost: 7 },
+  { id: 8, name: "姫", enName: "princess", count: 1, cost: 8 },
 ];
 
 class GameManager {
@@ -30,7 +30,7 @@ class GameManager {
     const hasMinister = player.hand.some((c) => c.id === 7);
     if (!hasMinister) return false;
 
-    const total = player.hand.reduce((sum, c) => sum + c.id, 0);
+    const total = player.hand.reduce((sum, c) => sum + (c.cost ?? c.id), 0);
     if (total >= 12) {
       player.isEliminated = true;
       player.hasDrawnCard = false;
@@ -110,7 +110,8 @@ class GameManager {
         this.deck.push({
           id: card.id,
           name: card.name,
-          enName: card.enName
+          enName: card.enName,
+          cost: card.cost,
         });
       }
     });
@@ -260,9 +261,11 @@ class GameManager {
           const myCard = player.hand[0];
           const targetCard = this.players[targetPlayerId].hand[0];
           if (myCard && targetCard) {
-            if (myCard.id === targetCard.id) {
+            const myCost = myCard.cost ?? myCard.id;
+            const targetCost = targetCard.cost ?? targetCard.id;
+            if (myCost === targetCost) {
               console.log("騎士の効果: 引き分けでした。");
-            } else if (myCard.id < targetCard.id) {
+            } else if (myCost < targetCost) {
               player.isEliminated = true;
               console.log(`${player.name} は脱落しました！（騎士の効果）`);
               io.to(this.roomId).emit("playerEliminated", {

@@ -12,6 +12,7 @@ interface Card {
   id: number;
   name: string;
   enName: string;
+  cost: number;
 }
 
 interface PlayedCardEntry {
