@@ -47,6 +47,27 @@ class GameManager {
     }
   }
 
+  checkPrincessElimination(playerId, discardedCard, io) {
+    const player = this.players[playerId];
+    if (!player || player.isEliminated) return;
+
+    if (discardedCard && discardedCard.id === 8) {
+      player.isEliminated = true;
+      console.log(`${player.name} は姫を捨てたため脱落しました。`);
+      if (io) {
+        io.to(this.roomId).emit("playerEliminated", {
+          playerId: playerId,
+          name: player.name,
+        });
+      }
+
+      const alive = Object.values(this.players).filter((p) => !p.isEliminated);
+      if (alive.length === 1 && io) {
+        io.to(this.roomId).emit("gameEnded", { winner: alive[0].name });
+      }
+    }
+  }
+
   addPlayer(socketId, name) {
     if (Object.keys(this.players).length >= 5) return false;
     this.players[socketId] = {
@@ -253,6 +274,7 @@ class GameManager {
                 player: this.players[targetId].name,
                 card: discarded,
               });
+              this.checkPrincessElimination(targetId, discarded, io);
             }
             if (this.deck.length) {
               const newCard = this.deck.pop();
@@ -286,6 +308,9 @@ class GameManager {
           this.checkMinisterElimination(playerId, io);
           this.checkMinisterElimination(targetPlayerId, io);
         }
+        break;
+      case 8: // 姫（princess）
+        this.checkPrincessElimination(playerId, card, io);
         break;
 
       // TODO: 他のカード（道化、騎士、僧侶、魔術師、将軍、大臣、姫）の処理を追加
