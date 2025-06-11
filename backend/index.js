@@ -83,7 +83,17 @@ io.on("connection", (socket) => {
       if (drawnCard) {
         logPlayerHands(game);
         socket.emit("cardDrawn", drawnCard);
-        game.checkMinisterElimination(playerId, io);
+        const eliminated = game.checkMinisterElimination(playerId, io);
+        if (eliminated) {
+          const alive = Object.values(game.players).filter((p) => !p.isEliminated);
+          if (alive.length > 1) {
+            game.nextTurn();
+            const currentPlayerId = game.getCurrentPlayerId();
+            io.to(roomId).emit("nextTurn", {
+              currentPlayer: game.players[currentPlayerId].name,
+            });
+          }
+        }
       }
     }
   });

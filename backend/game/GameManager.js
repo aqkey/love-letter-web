@@ -24,10 +24,10 @@ class GameManager {
 
   checkMinisterElimination(playerId, io) {
     const player = this.players[playerId];
-    if (!player || player.isEliminated) return;
+    if (!player || player.isEliminated) return false;
 
     const hasMinister = player.hand.some((c) => c.id === 7);
-    if (!hasMinister) return;
+    if (!hasMinister) return false;
 
     const total = player.hand.reduce((sum, c) => sum + c.id, 0);
     if (total > 12) {
@@ -44,7 +44,9 @@ class GameManager {
       if (alive.length === 1 && io) {
         io.to(this.roomId).emit("gameEnded", { winner: alive[0].name });
       }
+      return true;
     }
+    return false;
   }
 
   checkPrincessElimination(playerId, discardedCard, io) {
