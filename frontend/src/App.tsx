@@ -29,7 +29,11 @@ const App: React.FC = () => {
       )}
       {screen === "result" && (
         <div className="max-w-md mx-auto bg-white p-4 rounded shadow">
-          <h1 className="text-2xl mb-4">勝者: {winner} さん！</h1>
+          {winner === "引き分け" ? (
+            <h1 className="text-2xl mb-4">引き分けでした！</h1>
+          ) : (
+            <h1 className="text-2xl mb-4">勝者: {winner} さん！</h1>
+          )}
           <button
             onClick={() => setScreen("lobby")}
             className="bg-blue-500 text-white px-4 py-2 rounded w-full"

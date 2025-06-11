@@ -79,7 +79,7 @@ io.on("connection", (socket) => {
       socket.emit("errorMessage", "今はあなたのターンではありません。");
       return;
       }
-      const drawnCard = game.drawCard(playerId);
+      const drawnCard = game.drawCard(playerId, io);
       if (drawnCard) {
         logPlayerHands(game);
         socket.emit("cardDrawn", drawnCard);

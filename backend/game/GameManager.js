@@ -132,7 +132,7 @@ class GameManager {
     return this.turnOrder[this.currentTurn % this.turnOrder.length];
   }
 
-  drawCard(playerId) {
+  drawCard(playerId, io) {
     const player = this.players[playerId];
     if (!player || player.isEliminated) return null;
 
@@ -145,6 +145,9 @@ class GameManager {
     // 山札がない場合
     if (!this.deck.length) {
       console.log(`山札がありません。`);
+      if (io) {
+        this.determineWinnerByHandCost(io);
+      }
       return null;
     }
 
@@ -368,6 +371,25 @@ class GameManager {
     }
     player.hasDrawnCard = false; // カードを出したらフラグリセット
     return card;
+  }
+
+  determineWinnerByHandCost(io) {
+    const alive = Object.values(this.players).filter((p) => !p.isEliminated);
+    if (alive.length === 0) return;
+
+    const costs = alive.map((p) => {
+      const maxCost = p.hand.reduce((max, c) => (c.cost > max ? c.cost : max), 0);
+      return { name: p.name, cost: maxCost };
+    });
+
+    costs.sort((a, b) => b.cost - a.cost);
+    const highest = costs[0].cost;
+    const topPlayers = costs.filter((c) => c.cost === highest);
+    if (topPlayers.length === 1) {
+      io.to(this.roomId).emit("gameEnded", { winner: topPlayers[0].name });
+    } else {
+      io.to(this.roomId).emit("gameEnded", { winner: "引き分け" });
+    }
   }
 
   nextTurn() {
