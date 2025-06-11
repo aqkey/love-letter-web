@@ -59,8 +59,14 @@ const Game: React.FC<GameProps> = ({
   const [sorcererTargetId, setSorcererTargetId] = useState<string>("");
 
   const CARD_OPTIONS: Card[] = [
-    { id: 1, name: "兵士", enName: "soldier" },
+    // 兵士では宣言できないため除外
     { id: 2, name: "道化", enName: "clown" },
+    { id: 3, name: "騎士", enName: "knight" },
+    { id: 4, name: "僧侶", enName: "monk" },
+    { id: 5, name: "魔術師", enName: "sorcerer" },
+    { id: 6, name: "将軍", enName: "general" },
+    { id: 7, name: "大臣", enName: "minister" },
+    { id: 8, name: "姫", enName: "princess" },
   ];
 
   // 手札を見るモーダル
