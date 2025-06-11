@@ -259,6 +259,9 @@ class GameManager {
           }
         }
         break;
+      case 4: // 僧侶（monk）
+        player.isProtected = true;
+        break;
       case 5: // 魔術師（sorcerer）
         {
           const targetId = targetPlayerId || playerId;
@@ -323,6 +326,10 @@ class GameManager {
 
   nextTurn() {
     this.currentTurn++;
+    const nextPlayerId = this.getCurrentPlayerId();
+    if (this.players[nextPlayerId]) {
+      this.players[nextPlayerId].isProtected = false;
+    }
   }
 }
 
