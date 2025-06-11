@@ -22,6 +22,7 @@ class GameManager {
     this.gameStarted = false;
   }
 
+  // Return true if the player is eliminated by the minister effect
   checkMinisterElimination(playerId, io) {
     const player = this.players[playerId];
     if (!player || player.isEliminated) return false;
@@ -32,6 +33,7 @@ class GameManager {
     const total = player.hand.reduce((sum, c) => sum + c.id, 0);
     if (total > 12) {
       player.isEliminated = true;
+      player.hasDrawnCard = false;
       console.log(`${player.name} は大臣の効果で脱落しました。`);
       if (io) {
         io.to(this.roomId).emit("playerEliminated", {
