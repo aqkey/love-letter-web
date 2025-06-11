@@ -31,7 +31,7 @@ class GameManager {
     if (!hasMinister) return false;
 
     const total = player.hand.reduce((sum, c) => sum + c.id, 0);
-    if (total > 12) {
+    if (total >= 12) {
       player.isEliminated = true;
       player.hasDrawnCard = false;
       console.log(`${player.name} は大臣の効果で脱落しました。`);
