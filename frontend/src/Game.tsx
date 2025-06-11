@@ -167,8 +167,8 @@ const Game: React.FC<GameProps> = ({
   // カードを出す
   const handlePlay = (index: number) => {
     const card = hand[index];
-    if (card.id === 2) {
-      // 道化カードはターゲット選択のみ
+    if (card.id === 2 || card.id === 3) {
+      // 道化・騎士カードはターゲット選択のみ
       setSelectCardIndex(index);
       setShowTargetModal(true);
       return;
@@ -261,11 +261,11 @@ const Game: React.FC<GameProps> = ({
         ))}
       </div>
 
-      {/* ターゲット選択モーダル（道化用） */}
+      {/* ターゲット選択モーダル（道化・騎士用） */}
       {showTargetModal && (
         <div className="fixed z-10 left-0 top-0 w-full h-full bg-black bg-opacity-30 flex items-center justify-center">
           <div className="bg-white p-4 rounded shadow">
-            <h3 className="mb-2">見る相手を選んでください</h3>
+            <h3 className="mb-2">相手を選んでください</h3>
             <ul>
               {otherPlayers.map((p) => (
                 <li key={p.id} className="mb-2">

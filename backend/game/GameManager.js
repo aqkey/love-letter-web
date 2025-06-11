@@ -181,6 +181,43 @@ class GameManager {
           });
         }
         break;
+      case 3: // 騎士（knight）
+        if (
+          targetPlayerId &&
+          this.players[targetPlayerId] &&
+          !this.players[targetPlayerId].isEliminated &&
+          !this.players[targetPlayerId].isProtected
+        ) {
+          const myCard = player.hand[0];
+          const targetCard = this.players[targetPlayerId].hand[0];
+          if (myCard && targetCard) {
+            if (myCard.id === targetCard.id) {
+              console.log("騎士の効果: 引き分けでした。");
+            } else if (myCard.id < targetCard.id) {
+              player.isEliminated = true;
+              console.log(`${player.name} は脱落しました！（騎士の効果）`);
+              io.to(this.roomId).emit("playerEliminated", {
+                playerId: playerId,
+                name: player.name,
+              });
+            } else {
+              this.players[targetPlayerId].isEliminated = true;
+              console.log(`${this.players[targetPlayerId].name} は脱落しました！（騎士の効果）`);
+              io.to(this.roomId).emit("playerEliminated", {
+                playerId: targetPlayerId,
+                name: this.players[targetPlayerId].name,
+              });
+            }
+
+            const alive = Object.values(this.players).filter((p) => !p.isEliminated);
+            if (alive.length === 1) {
+              io.to(this.roomId).emit("gameEnded", {
+                winner: alive[0].name,
+              });
+            }
+          }
+        }
+        break;
 
       // TODO: 他のカード（道化、騎士、僧侶、魔術師、将軍、大臣、姫）の処理を追加
       default:
