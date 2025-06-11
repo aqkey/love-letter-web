@@ -22,6 +22,7 @@ interface PlayedCardEntry {
 interface PlayerInfo {
   name: string;
   id: string;
+  isEliminated?: boolean;
 }
 
 interface CardPlayedData {
@@ -74,13 +75,26 @@ const Game: React.FC<GameProps> = ({
       setCurrentPlayer(data.currentPlayer);
       if (data.players && data.players.length > 0) {
         console.log("gameStarted players:", data.players);
-        setPlayers(data.players);
+        setPlayers(
+          data.players.map((p: any) => ({
+            id: p.id,
+            name: p.name,
+            isEliminated: p.isEliminated ?? false,
+          }))
+        );
       }
     });
 
     socket.on("roomUpdate", (data) => {
       console.log("roomUpdate players:", data.players);
-      if (data.players) setPlayers(data.players);
+      if (data.players)
+        setPlayers(
+          data.players.map((p: any) => ({
+            id: p.id,
+            name: p.name,
+            isEliminated: p.isEliminated ?? false,
+          }))
+        );
     });
 
     socket.on("initialHand", (hand) => {
@@ -112,6 +126,21 @@ const Game: React.FC<GameProps> = ({
       setShowSeeHandModal(true);
     });
 
+    socket.on("playerEliminated", ({ playerId, name }) => {
+      setPlayers((prev) =>
+        prev.map((p) =>
+          p.id === playerId ? { ...p, isEliminated: true } : p
+        )
+      );
+      setErrorMessage(`${name} さんが脱落しました`);
+      setTimeout(() => setErrorMessage(""), 3000);
+    });
+
+    socket.on("gameEnded", ({ winner }) => {
+      setWinner(winner);
+      setScreen("result");
+    });
+
     socket.on("errorMessage", (message) => {
       setErrorMessage(message);
       setTimeout(() => setErrorMessage(""), 3000);
@@ -125,6 +154,8 @@ const Game: React.FC<GameProps> = ({
       socket.off("cardPlayed");
       socket.off("nextTurn");
       socket.off("seeHand");
+      socket.off("playerEliminated");
+      socket.off("gameEnded");
       socket.off("errorMessage");
     };
   }, []);
@@ -187,8 +218,10 @@ const Game: React.FC<GameProps> = ({
     setGuessCardId(null);
   };
 
-  // 自分以外のプレイヤー
-  const otherPlayers = players.filter((p) => p.name !== playerName);
+  // 自分以外で脱落していないプレイヤー
+  const otherPlayers = players.filter(
+    (p) => p.name !== playerName && !p.isEliminated
+  );
 
   return (
     <div className="max-w-md mx-auto bg-white p-4 rounded shadow">
