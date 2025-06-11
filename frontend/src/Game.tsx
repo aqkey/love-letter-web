@@ -260,6 +260,7 @@ const Game: React.FC<GameProps> = ({
 
   return (
     <div className="max-w-md mx-auto bg-white p-4 rounded shadow">
+      <p className="font-bold mb-2">あなたの名前：{playerName}</p>
       <h2 className="text-lg mb-2">ターン：{currentPlayer}</h2>
 
       {errorMessage && (
