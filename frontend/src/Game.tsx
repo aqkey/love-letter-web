@@ -12,6 +12,7 @@ interface Card {
   id: number;
   name: string;
   enName: string;
+  cost: number;
 }
 
 interface PlayedCardEntry {
@@ -60,13 +61,13 @@ const Game: React.FC<GameProps> = ({
 
   const CARD_OPTIONS: Card[] = [
     // 兵士では宣言できないため除外
-    { id: 2, name: "道化", enName: "clown" },
-    { id: 3, name: "騎士", enName: "knight" },
-    { id: 4, name: "僧侶", enName: "monk" },
-    { id: 5, name: "魔術師", enName: "sorcerer" },
-    { id: 6, name: "将軍", enName: "general" },
-    { id: 7, name: "大臣", enName: "minister" },
-    { id: 8, name: "姫", enName: "princess" },
+    { id: 2, name: "道化", enName: "clown", cost: 1 },
+    { id: 3, name: "騎士", enName: "knight", cost: 2 },
+    { id: 4, name: "僧侶", enName: "monk", cost: 3 },
+    { id: 5, name: "魔術師", enName: "sorcerer", cost: 4 },
+    { id: 6, name: "将軍", enName: "general", cost: 5 },
+    { id: 7, name: "大臣", enName: "minister", cost: 6 },
+    { id: 8, name: "姫", enName: "princess", cost: 7 },
   ];
 
   // 手札を見るモーダル
