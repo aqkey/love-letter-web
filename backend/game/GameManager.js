@@ -3,6 +3,7 @@ const CARD_LIST = [
   { id: 1, name: "兵士", enName: "soldier", count: 1 },
   { id: 2, name: "道化", enName: "clown", count: 10 },
   { id: 5, name: "魔術師", enName: "sorcerer", count: 2 },
+  { id: 6, name: "将軍", enName: "general", count: 1 },
 ];
 /*
 const CARD_LIST = [
@@ -240,6 +241,28 @@ class GameManager {
               this.players[targetId].hand = [newCard];
               io.to(targetId).emit("replaceCard", newCard);
             }
+          }
+        }
+        break;
+      case 6: // 将軍（general）
+        if (
+          targetPlayerId &&
+          this.players[targetPlayerId] &&
+          !this.players[targetPlayerId].isEliminated &&
+          !this.players[targetPlayerId].isProtected
+        ) {
+          const myHand = [...player.hand];
+          const targetHand = [...this.players[targetPlayerId].hand];
+          player.hand = targetHand;
+          this.players[targetPlayerId].hand = myHand;
+          if (player.hand[0]) {
+            io.to(playerId).emit("replaceCard", player.hand[0]);
+          }
+          if (this.players[targetPlayerId].hand[0]) {
+            io.to(targetPlayerId).emit(
+              "replaceCard",
+              this.players[targetPlayerId].hand[0]
+            );
           }
         }
         break;

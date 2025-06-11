@@ -176,8 +176,8 @@ const Game: React.FC<GameProps> = ({
   // カードを出す
   const handlePlay = (index: number) => {
     const card = hand[index];
-    if (card.id === 2 || card.id === 3) {
-      // 道化・騎士カードはターゲット選択のみ
+    if (card.id === 2 || card.id === 3 || card.id === 6) {
+      // 道化・騎士・将軍カードはターゲット選択のみ
       setSelectCardIndex(index);
       setShowTargetModal(true);
       return;
