@@ -1,11 +1,5 @@
 // backend/game/GameManager.js
-const CARD_LIST = [
-  { id: 1, name: "兵士", enName: "soldier", count: 1 },
-  { id: 2, name: "道化", enName: "clown", count: 10 },
-  { id: 5, name: "魔術師", enName: "sorcerer", count: 2 },
-  { id: 6, name: "将軍", enName: "general", count: 1 },
-];
-/*
+
 const CARD_LIST = [
   { id: 1, name: "兵士", enName: "soldier", count: 5 },
   { id: 2, name: "道化", enName: "clown", count: 2 },
@@ -16,7 +10,6 @@ const CARD_LIST = [
   { id: 7, name: "大臣", enName: "minister", count: 1 },
   { id: 8, name: "姫", enName: "princess", count: 1 },
 ];
-*/
 
 class GameManager {
   constructor(roomId) {
