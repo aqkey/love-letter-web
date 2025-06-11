@@ -83,6 +83,7 @@ io.on("connection", (socket) => {
       if (drawnCard) {
         logPlayerHands(game);
         socket.emit("cardDrawn", drawnCard);
+        game.checkMinisterElimination(playerId, io);
       }
     }
   });

@@ -22,6 +22,31 @@ class GameManager {
     this.gameStarted = false;
   }
 
+  checkMinisterElimination(playerId, io) {
+    const player = this.players[playerId];
+    if (!player || player.isEliminated) return;
+
+    const hasMinister = player.hand.some((c) => c.id === 7);
+    if (!hasMinister) return;
+
+    const total = player.hand.reduce((sum, c) => sum + c.id, 0);
+    if (total > 12) {
+      player.isEliminated = true;
+      console.log(`${player.name} は大臣の効果で脱落しました。`);
+      if (io) {
+        io.to(this.roomId).emit("playerEliminated", {
+          playerId: playerId,
+          name: player.name,
+        });
+      }
+
+      const alive = Object.values(this.players).filter((p) => !p.isEliminated);
+      if (alive.length === 1 && io) {
+        io.to(this.roomId).emit("gameEnded", { winner: alive[0].name });
+      }
+    }
+  }
+
   addPlayer(socketId, name) {
     if (Object.keys(this.players).length >= 5) return false;
     this.players[socketId] = {
@@ -233,6 +258,7 @@ class GameManager {
               const newCard = this.deck.pop();
               this.players[targetId].hand = [newCard];
               io.to(targetId).emit("replaceCard", newCard);
+              this.checkMinisterElimination(targetId, io);
             }
           }
         }
@@ -257,6 +283,8 @@ class GameManager {
               this.players[targetPlayerId].hand[0]
             );
           }
+          this.checkMinisterElimination(playerId, io);
+          this.checkMinisterElimination(targetPlayerId, io);
         }
         break;
 
