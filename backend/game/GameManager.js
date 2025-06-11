@@ -177,6 +177,14 @@ class GameManager {
     switch (card.id) {
       case 1: // 兵士（soldier）
         if (
+          targetPlayerId &&
+          this.players[targetPlayerId] &&
+          this.players[targetPlayerId].isProtected
+        ) {
+          console.log(`${this.players[targetPlayerId].name} は僧侶の効果で守られています。`);
+          break;
+        }
+        if (
           guessCardId &&
           targetPlayerId &&
           this.players[targetPlayerId] &&
@@ -210,6 +218,14 @@ class GameManager {
         if (
           targetPlayerId &&
           this.players[targetPlayerId] &&
+          this.players[targetPlayerId].isProtected
+        ) {
+          console.log(`${this.players[targetPlayerId].name} は僧侶の効果で守られています。`);
+          break;
+        }
+        if (
+          targetPlayerId &&
+          this.players[targetPlayerId] &&
           !this.players[targetPlayerId].isEliminated &&
           !this.players[targetPlayerId].isProtected
         ) {
@@ -223,6 +239,14 @@ class GameManager {
         }
         break;
       case 3: // 騎士（knight）Add commentMore actions
+        if (
+          targetPlayerId &&
+          this.players[targetPlayerId] &&
+          this.players[targetPlayerId].isProtected
+        ) {
+          console.log(`${this.players[targetPlayerId].name} は僧侶の効果で守られています。`);
+          break;
+        }
         if (
           targetPlayerId &&
           this.players[targetPlayerId] &&
@@ -268,6 +292,14 @@ class GameManager {
           if (
             targetId &&
             this.players[targetId] &&
+            this.players[targetId].isProtected
+          ) {
+            console.log(`${this.players[targetId].name} は僧侶の効果で守られています。`);
+            break;
+          }
+          if (
+            targetId &&
+            this.players[targetId] &&
             !this.players[targetId].isEliminated &&
             !this.players[targetId].isProtected
           ) {
@@ -289,6 +321,14 @@ class GameManager {
         }
         break;
       case 6: // 将軍（general）
+        if (
+          targetPlayerId &&
+          this.players[targetPlayerId] &&
+          this.players[targetPlayerId].isProtected
+        ) {
+          console.log(`${this.players[targetPlayerId].name} は僧侶の効果で守られています。`);
+          break;
+        }
         if (
           targetPlayerId &&
           this.players[targetPlayerId] &&
