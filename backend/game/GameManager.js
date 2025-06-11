@@ -177,6 +177,14 @@ class GameManager {
     switch (card.id) {
       case 1: // 兵士（soldier）
         if (
+          targetPlayerId &&
+          this.players[targetPlayerId] &&
+          this.players[targetPlayerId].isProtected
+        ) {
+          console.log(`${this.players[targetPlayerId].name} は僧侶の効果で守られています。`);
+          break;
+        }
+        if (
           guessCardId &&
           targetPlayerId &&
           this.players[targetPlayerId] &&
@@ -210,6 +218,14 @@ class GameManager {
         if (
           targetPlayerId &&
           this.players[targetPlayerId] &&
+          this.players[targetPlayerId].isProtected
+        ) {
+          console.log(`${this.players[targetPlayerId].name} は僧侶の効果で守られています。`);
+          break;
+        }
+        if (
+          targetPlayerId &&
+          this.players[targetPlayerId] &&
           !this.players[targetPlayerId].isEliminated &&
           !this.players[targetPlayerId].isProtected
         ) {
@@ -223,6 +239,14 @@ class GameManager {
         }
         break;
       case 3: // 騎士（knight）Add commentMore actions
+        if (
+          targetPlayerId &&
+          this.players[targetPlayerId] &&
+          this.players[targetPlayerId].isProtected
+        ) {
+          console.log(`${this.players[targetPlayerId].name} は僧侶の効果で守られています。`);
+          break;
+        }
         if (
           targetPlayerId &&
           this.players[targetPlayerId] &&
@@ -259,9 +283,20 @@ class GameManager {
           }
         }
         break;
+      case 4: // 僧侶（monk）
+        player.isProtected = true;
+        break;
       case 5: // 魔術師（sorcerer）
         {
           const targetId = targetPlayerId || playerId;
+          if (
+            targetId &&
+            this.players[targetId] &&
+            this.players[targetId].isProtected
+          ) {
+            console.log(`${this.players[targetId].name} は僧侶の効果で守られています。`);
+            break;
+          }
           if (
             targetId &&
             this.players[targetId] &&
@@ -286,6 +321,14 @@ class GameManager {
         }
         break;
       case 6: // 将軍（general）
+        if (
+          targetPlayerId &&
+          this.players[targetPlayerId] &&
+          this.players[targetPlayerId].isProtected
+        ) {
+          console.log(`${this.players[targetPlayerId].name} は僧侶の効果で守られています。`);
+          break;
+        }
         if (
           targetPlayerId &&
           this.players[targetPlayerId] &&
@@ -323,6 +366,10 @@ class GameManager {
 
   nextTurn() {
     this.currentTurn++;
+    const nextPlayerId = this.getCurrentPlayerId();
+    if (this.players[nextPlayerId]) {
+      this.players[nextPlayerId].isProtected = false;
+    }
   }
 }
 
