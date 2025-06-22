@@ -82,13 +82,18 @@ class GameManager {
   checkPrincessGlassesRevival(playerId, io) {
     const player = this.players[playerId];
     if (!player || !player.isEliminated) return false;
-    const hasCard = player.hand.some((c) => c.id === 9);
-    if (!hasCard) return false;
+    const cardIndex = player.hand.findIndex((c) => c.id === 9);
+    if (cardIndex === -1) return false;
     if (!this.deck.length) return false;
 
-    player.isEliminated = false;
+    const discarded = player.hand.splice(cardIndex, 1)[0];
+    this.playedCards.push({ player: player.name, card: discarded });
+
     const newCard = this.deck.pop();
+
     player.hand.push(newCard);
+    player.isEliminated = false;
+
     console.log(`${player.name} は姫(眼鏡)の効果で復活しました。`);
     if (io) {
       io.to(playerId).emit("cardDrawn", newCard);
