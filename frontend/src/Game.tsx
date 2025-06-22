@@ -69,6 +69,7 @@ const Game: React.FC<GameProps> = ({
     { id: 6, name: "将軍", enName: "general", cost: 5 },
     { id: 7, name: "大臣", enName: "minister", cost: 6 },
     { id: 8, name: "姫", enName: "princess", cost: 7 },
+    { id: 9, name: "姫(眼鏡)", enName: "princess_glasses", cost: 8 },
   ];
 
   // 手札を見るモーダル
@@ -159,6 +160,16 @@ const Game: React.FC<GameProps> = ({
       setTimeout(() => setErrorMessage(""), 3000);
     });
 
+    socket.on("playerRevived", ({ playerId, name }) => {
+      setPlayers((prev) =>
+        prev.map((p) =>
+          p.id === playerId ? { ...p, isEliminated: false } : p
+        )
+      );
+      setErrorMessage(`${name} さんが復活しました`);
+      setTimeout(() => setErrorMessage(""), 3000);
+    });
+
     socket.on("gameEnded", ({ winner }) => {
       setWinner(winner);
       setScreen("result");
@@ -180,6 +191,7 @@ const Game: React.FC<GameProps> = ({
       socket.off("seeHand");
       socket.off("deckCount");
       socket.off("playerEliminated");
+      socket.off("playerRevived");
       socket.off("gameEnded");
       socket.off("errorMessage");
     };

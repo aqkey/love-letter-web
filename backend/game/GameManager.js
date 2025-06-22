@@ -9,6 +9,7 @@ const CARD_LIST = [
   { id: 6, name: "将軍", enName: "general", cost: 6, count: 1 },
   { id: 7, name: "大臣", enName: "minister", cost: 7, count: 1 },
   { id: 8, name: "姫", enName: "princess", cost: 8, count: 1 },
+  { id: 9, name: "姫(眼鏡)", enName: "princess_glasses", cost: 9, count: 1 },
 ];
 
 class GameManager {
@@ -35,16 +36,20 @@ class GameManager {
       player.isEliminated = true;
       player.hasDrawnCard = false;
       console.log(`${player.name} は大臣の効果で脱落しました。`);
-      if (io) {
-        io.to(this.roomId).emit("playerEliminated", {
-          playerId: playerId,
-          name: player.name,
-        });
-      }
 
-      const alive = Object.values(this.players).filter((p) => !p.isEliminated);
-      if (alive.length === 1 && io) {
-        io.to(this.roomId).emit("gameEnded", { winner: alive[0].name });
+      const revived = this.checkPrincessGlassesRevival(playerId, io);
+      if (!revived) {
+        if (io) {
+          io.to(this.roomId).emit("playerEliminated", {
+            playerId: playerId,
+            name: player.name,
+          });
+        }
+
+        const alive = Object.values(this.players).filter((p) => !p.isEliminated);
+        if (alive.length === 1 && io) {
+          io.to(this.roomId).emit("gameEnded", { winner: alive[0].name });
+        }
       }
       return true;
     }
@@ -58,17 +63,42 @@ class GameManager {
     if (discardedCard && discardedCard.id === 8) {
       player.isEliminated = true;
       console.log(`${player.name} は姫を捨てたため脱落しました。`);
-      if (io) {
-        io.to(this.roomId).emit("playerEliminated", {
-          playerId: playerId,
-          name: player.name,
-        });
-      }
-      const alive = Object.values(this.players).filter((p) => !p.isEliminated);
-      if (alive.length === 1 && io) {
-        io.to(this.roomId).emit("gameEnded", { winner: alive[0].name });
+      const revived = this.checkPrincessGlassesRevival(playerId, io);
+      if (!revived) {
+        if (io) {
+          io.to(this.roomId).emit("playerEliminated", {
+            playerId: playerId,
+            name: player.name,
+          });
+        }
+        const alive = Object.values(this.players).filter((p) => !p.isEliminated);
+        if (alive.length === 1 && io) {
+          io.to(this.roomId).emit("gameEnded", { winner: alive[0].name });
+        }
       }
     }
+  }
+
+  checkPrincessGlassesRevival(playerId, io) {
+    const player = this.players[playerId];
+    if (!player || !player.isEliminated) return false;
+    const hasCard = player.hand.some((c) => c.id === 9);
+    if (!hasCard) return false;
+    if (!this.deck.length) return false;
+
+    player.isEliminated = false;
+    const newCard = this.deck.pop();
+    player.hand.push(newCard);
+    console.log(`${player.name} は姫(眼鏡)の効果で復活しました。`);
+    if (io) {
+      io.to(playerId).emit("cardDrawn", newCard);
+      io.to(this.roomId).emit("playerRevived", {
+        playerId: playerId,
+        name: player.name,
+      });
+    }
+    this.checkMinisterElimination(playerId, io);
+    return true;
   }
 
   addPlayer(socketId, name) {
@@ -204,17 +234,20 @@ class GameManager {
             console.log(
               `${this.players[targetPlayerId].name} は脱落しました！（兵士の効果）`
             );
-            io.to(this.roomId).emit("playerEliminated", {
-              playerId: targetPlayerId,
-              name: this.players[targetPlayerId].name,
-            });
-            const alive = Object.values(this.players).filter(
-              (p) => !p.isEliminated
-            );
-            if (alive.length === 1) {
-              io.to(this.roomId).emit("gameEnded", {
-                winner: alive[0].name,
+            const revived = this.checkPrincessGlassesRevival(targetPlayerId, io);
+            if (!revived) {
+              io.to(this.roomId).emit("playerEliminated", {
+                playerId: targetPlayerId,
+                name: this.players[targetPlayerId].name,
               });
+              const alive = Object.values(this.players).filter(
+                (p) => !p.isEliminated
+              );
+              if (alive.length === 1) {
+                io.to(this.roomId).emit("gameEnded", {
+                  winner: alive[0].name,
+                });
+              }
             }
           } else {
             console.log(`${this.players[targetPlayerId].name} はセーフでした。`);
@@ -270,17 +303,23 @@ class GameManager {
             } else if (myCost < targetCost) {
               player.isEliminated = true;
               console.log(`${player.name} は脱落しました！（騎士の効果）`);
-              io.to(this.roomId).emit("playerEliminated", {
-                playerId: playerId,
-                name: player.name,
-              });
+              const revived = this.checkPrincessGlassesRevival(playerId, io);
+              if (!revived) {
+                io.to(this.roomId).emit("playerEliminated", {
+                  playerId: playerId,
+                  name: player.name,
+                });
+              }
             } else {
               this.players[targetPlayerId].isEliminated = true;
               console.log(`${this.players[targetPlayerId].name} は脱落しました！（騎士の効果）`);
-              io.to(this.roomId).emit("playerEliminated", {
-                playerId: targetPlayerId,
-                name: this.players[targetPlayerId].name,
-              });
+              const revived = this.checkPrincessGlassesRevival(targetPlayerId, io);
+              if (!revived) {
+                io.to(this.roomId).emit("playerEliminated", {
+                  playerId: targetPlayerId,
+                  name: this.players[targetPlayerId].name,
+                });
+              }
             }
 
             const alive = Object.values(this.players).filter((p) => !p.isEliminated);
@@ -363,6 +402,9 @@ class GameManager {
         break;
       case 8: // 姫（princess）
         this.checkPrincessElimination(playerId, card, io);
+        break;
+      case 9: // 姫(眼鏡)
+        // 特殊効果は脱落時に処理されるため、出したときの効果はなし
         break;
 
       // TODO: 他のカード（道化、騎士、僧侶、魔術師、将軍、大臣、姫）の処理を追加
