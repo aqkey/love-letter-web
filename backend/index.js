@@ -63,6 +63,7 @@ io.on("connection", (socket) => {
           handCount: p.hand.length,
         })),
         currentPlayer: game.players[currentPlayerId].name,
+        deckCount: game.deck.length,
       });
         console.log("Game Start:", game.players[currentPlayerId].name);
     }
@@ -83,6 +84,7 @@ io.on("connection", (socket) => {
       if (drawnCard) {
         logPlayerHands(game);
         socket.emit("cardDrawn", drawnCard);
+        io.to(roomId).emit("deckCount", { deckCount: game.deck.length });
         const eliminated = game.checkMinisterElimination(playerId, io);
         if (eliminated) {
           const alive = Object.values(game.players).filter((p) => !p.isEliminated);
@@ -116,6 +118,7 @@ io.on("connection", (socket) => {
         card: playedCard,
         playedCards: game.playedCards,
       });
+      io.to(roomId).emit("deckCount", { deckCount: game.deck.length });
       if (!playedCard) {
         // カードが出せなかった（drawCardしてない、脱落済みなど）
         socket.emit("errorMessage", "カードを出せません。カードを引いてから出してください。");

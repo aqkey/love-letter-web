@@ -43,6 +43,7 @@ const Game: React.FC<GameProps> = ({
   const [currentPlayer, setCurrentPlayer] = useState<string>("");
   const [playedCards, setPlayedCards] = useState<PlayedCardEntry[]>([]);
   const [errorMessage, setErrorMessage] = useState<string>("");
+  const [deckCount, setDeckCount] = useState<number>(0);
 
   // プレイヤーリスト（ターゲット選択用）
   const [players, setPlayers] = useState<PlayerInfo[]>([]);
@@ -84,6 +85,9 @@ const Game: React.FC<GameProps> = ({
     });
     socket.on("gameStarted", (data) => {
       setCurrentPlayer(data.currentPlayer);
+      if (data.deckCount !== undefined) {
+        setDeckCount(data.deckCount);
+      }
       if (data.players && data.players.length > 0) {
         console.log("gameStarted players:", data.players);
         setPlayers(
@@ -114,6 +118,10 @@ const Game: React.FC<GameProps> = ({
 
     socket.on("cardDrawn", (card) => {
       setHand((prev) => [...prev, card]);
+    });
+
+    socket.on("deckCount", ({ deckCount }) => {
+      setDeckCount(deckCount);
     });
 
     socket.on("replaceCard", (card) => {
@@ -170,6 +178,7 @@ const Game: React.FC<GameProps> = ({
       socket.off("cardPlayed");
       socket.off("nextTurn");
       socket.off("seeHand");
+      socket.off("deckCount");
       socket.off("playerEliminated");
       socket.off("gameEnded");
       socket.off("errorMessage");
@@ -263,6 +272,7 @@ const Game: React.FC<GameProps> = ({
     <div className="max-w-md mx-auto bg-white p-4 rounded shadow">
       <p className="font-bold mb-2">あなたの名前：{playerName}</p>
       <h2 className="text-lg mb-2">ターン：{currentPlayer}</h2>
+      <p className="mb-2">山札残り枚数：{deckCount}</p>
 
       <div className="mb-4">
         <h3 className="text-md font-bold mb-2">プレイヤー状態</h3>
