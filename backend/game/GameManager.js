@@ -9,7 +9,7 @@ const CARD_LIST = [
   { id: 6, name: "将軍", enName: "general", cost: 6, count: 1 },
   { id: 7, name: "大臣", enName: "minister", cost: 7, count: 1 },
   { id: 8, name: "姫", enName: "princess", cost: 8, count: 1 },
-  { id: 9, name: "姫(眼鏡)", enName: "princess_glasses", cost: 9, count: 1 },
+  { id: 9, name: "姫(眼鏡)", enName: "princess_glasses", cost: 8, count: 1 },
 ];
 
 class GameManager {
@@ -283,7 +283,7 @@ class GameManager {
           });
         }
         break;
-      case 3: // 騎士（knight）Add commentMore actions
+      case 3: // 騎士（knight）
         if (
           targetPlayerId &&
           this.players[targetPlayerId] &&
