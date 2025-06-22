@@ -264,6 +264,20 @@ const Game: React.FC<GameProps> = ({
       <p className="font-bold mb-2">あなたの名前：{playerName}</p>
       <h2 className="text-lg mb-2">ターン：{currentPlayer}</h2>
 
+      <div className="mb-4">
+        <h3 className="text-md font-bold mb-2">プレイヤー状態</h3>
+        <ul className="list-disc list-inside">
+          {players.map((p) => (
+            <li
+              key={p.id}
+              className={p.isEliminated ? "line-through text-gray-500" : ""}
+            >
+              {p.name} {p.isEliminated ? "(脱落)" : ""}
+            </li>
+          ))}
+        </ul>
+      </div>
+
       {errorMessage && (
         <p className="text-red-500 font-bold mb-2">{errorMessage}</p>
       )}
