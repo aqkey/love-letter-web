@@ -88,6 +88,14 @@ class GameManager {
 
     const discarded = player.hand.splice(cardIndex, 1)[0];
     this.playedCards.push({ player: player.name, card: discarded });
+    if (io) {
+      io.to(this.roomId).emit("cardPlayed", {
+        playerId: playerId,
+        player: player.name,
+        card: discarded,
+        playedCards: this.playedCards,
+      });
+    }
 
     const newCard = this.deck.pop();
 
