@@ -101,6 +101,7 @@ class GameManager {
         playerId: playerId,
         name: player.name,
       });
+      io.to(this.roomId).emit("deckCount", { deckCount: this.deck.length });
     }
     this.checkMinisterElimination(playerId, io);
     return true;
