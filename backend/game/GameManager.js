@@ -28,8 +28,8 @@ class GameManager {
     const player = this.players[playerId];
     if (!player || player.isEliminated) return false;
 
-    const hasMinister = player.hand.some((c) => c.id === 7);
-    if (!hasMinister) return false;
+    const ministerIndex = player.hand.findIndex((c) => c.id === 7);
+    if (ministerIndex === -1) return false;
 
     const total = player.hand.reduce((sum, c) => sum + c.cost, 0);
     if (total >= 12) {
@@ -44,13 +44,41 @@ class GameManager {
         });
       }
 
+      // 大臣のカードを捨て札に移動
+      const ministerCard = player.hand.splice(ministerIndex, 1)[0];
+      this.playedCards.push({ player: player.name, card: ministerCard });
+      if (io) {
+        io.to(this.roomId).emit("cardPlayed", {
+          playerId: playerId,
+          player: player.name,
+          card: ministerCard,
+          playedCards: this.playedCards,
+        });
+      }
+
       const revived = this.checkPrincessGlassesRevival(playerId, io);
+
       if (!revived) {
+        // 脱落したままなら残りの手札も捨て札へ
+        while (player.hand.length) {
+          const discarded = player.hand.pop();
+          this.playedCards.push({ player: player.name, card: discarded });
+          if (io) {
+            io.to(this.roomId).emit("cardPlayed", {
+              playerId: playerId,
+              player: player.name,
+              card: discarded,
+              playedCards: this.playedCards,
+            });
+          }
+        }
+
         const alive = Object.values(this.players).filter((p) => !p.isEliminated);
         if (alive.length === 1 && io) {
           io.to(this.roomId).emit("gameEnded", { winner: alive[0].name });
         }
       }
+
       return true;
     }
     return false;
@@ -111,7 +139,6 @@ class GameManager {
       });
       io.to(this.roomId).emit("deckCount", { deckCount: this.deck.length });
     }
-    this.checkMinisterElimination(playerId, io);
     return true;
   }
 
