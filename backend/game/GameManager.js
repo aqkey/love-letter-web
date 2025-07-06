@@ -37,15 +37,15 @@ class GameManager {
       player.hasDrawnCard = false;
       console.log(`${player.name} は大臣の効果で脱落しました。`);
 
+      if (io) {
+        io.to(this.roomId).emit("playerEliminated", {
+          playerId: playerId,
+          name: player.name,
+        });
+      }
+
       const revived = this.checkPrincessGlassesRevival(playerId, io);
       if (!revived) {
-        if (io) {
-          io.to(this.roomId).emit("playerEliminated", {
-            playerId: playerId,
-            name: player.name,
-          });
-        }
-
         const alive = Object.values(this.players).filter((p) => !p.isEliminated);
         if (alive.length === 1 && io) {
           io.to(this.roomId).emit("gameEnded", { winner: alive[0].name });
