@@ -125,3 +125,17 @@ test('princess glasses revives player', () => {
   assert.equal(gm.players['p1'].hand.length, 1);
   assert.equal(gm.players['p1'].hand[0].id, 2);
 });
+
+// Princess glasses and minister trigger revival with new card
+test('minister and glasses combination draws a card to revive', () => {
+  const gm = setupTwoPlayers();
+  gm.players['p1'].hand = [
+    createCard(7, '大臣', 7),
+    createCard(9, '姫(眼鏡)', 8)
+  ];
+  gm.deck = [createCard(3, '騎士', 3)];
+  gm.checkMinisterElimination('p1', new MockIO());
+  assert.equal(gm.players['p1'].isEliminated, false);
+  assert.equal(gm.players['p1'].hand.length, 1);
+  assert.equal(gm.players['p1'].hand[0].id, 3);
+});
