@@ -10,6 +10,7 @@ const CARD_LIST = [
   { id: 7, name: "大臣", enName: "minister", cost: 7, count: 1 },
   { id: 8, name: "姫", enName: "princess", cost: 8, count: 1 },
   { id: 9, name: "姫(眼鏡)", enName: "princess_glasses", cost: 8, count: 1 },
+  { id: 10, name: "伯爵夫人", enName: "countess", cost: 8, count: 1 },
 ];
 
 class GameManager {
@@ -128,6 +129,9 @@ class GameManager {
     const newCard = this.deck.pop();
 
     player.hand.push(newCard);
+    if (this.deck.length === 0) {
+      this.handleCountessElimination(io);
+    }
     player.isEliminated = false;
 
     console.log(`${player.name} は姫(眼鏡)の効果で復活しました。`);
@@ -140,6 +144,26 @@ class GameManager {
       io.to(this.roomId).emit("deckCount", { deckCount: this.deck.length });
     }
     return true;
+  }
+
+  handleCountessElimination(io) {
+    Object.keys(this.players).forEach((pid) => {
+      const p = this.players[pid];
+      if (!p.isEliminated && p.hand.some((c) => c.id === 10)) {
+        p.isEliminated = true;
+        console.log(`${p.name} は伯爵夫人を持ったまま山札が尽きたため脱落しました。`);
+        const revived = this.checkPrincessGlassesRevival(pid, io);
+        if (!revived && io) {
+          io.to(this.roomId).emit("playerEliminated", { playerId: pid, name: p.name });
+        }
+      }
+    });
+    const alive = Object.values(this.players).filter((p) => !p.isEliminated);
+    if (alive.length === 1 && io) {
+      io.to(this.roomId).emit("gameEnded", { winner: alive[0].name });
+    } else if (io) {
+      this.determineWinnerByHandCost(io);
+    }
   }
 
   addPlayer(socketId, name) {
@@ -216,15 +240,16 @@ class GameManager {
     // 山札がない場合
     if (!this.deck.length) {
       console.log(`山札がありません。`);
-      if (io) {
-        this.determineWinnerByHandCost(io);
-      }
+      this.handleCountessElimination(io);
       return null;
     }
 
     const card = this.deck.pop();
     player.hand.push(card);
-    player.hasDrawnCard = true; 
+    player.hasDrawnCard = true;
+    if (this.deck.length === 0) {
+      this.handleCountessElimination(io);
+    }
     return card;
   }
 
@@ -242,6 +267,15 @@ class GameManager {
     }
     // 
     if (!player.hand || player.hand.length <= cardIndex) return null;
+
+    const selectedCard = player.hand[cardIndex];
+    if (selectedCard.id === 10) {
+      console.log(`${player.name} は伯爵夫人を出すことはできません。`);
+      if (io) {
+        io.to(playerId).emit("errorMessage", "伯爵夫人は場に出せません。");
+      }
+      return null;
+    }
 
     const card = player.hand.splice(cardIndex, 1)[0];
     if (!card) return null;
@@ -392,6 +426,13 @@ class GameManager {
             !this.players[targetId].isEliminated &&
             !this.players[targetId].isProtected
           ) {
+            const targetHand = this.players[targetId].hand;
+            if (targetHand.length && targetHand[0].id === 10) {
+              console.log(
+                `${this.players[targetId].name} の伯爵夫人は魔術師の効果で捨てられません。`
+              );
+              break;
+            }
             const discarded = this.players[targetId].hand.splice(0, 1)[0];
             if (discarded) {
               this.playedCards.push({
@@ -405,6 +446,9 @@ class GameManager {
               this.players[targetId].hand = [newCard];
               io.to(targetId).emit("replaceCard", newCard);
               this.checkMinisterElimination(targetId, io);
+              if (this.deck.length === 0) {
+                this.handleCountessElimination(io);
+              }
             }
           }
         }
@@ -446,6 +490,9 @@ class GameManager {
         break;
       case 9: // 姫(眼鏡)
         // 特殊効果は脱落時に処理されるため、出したときの効果はなし
+        break;
+      case 10: // 伯爵夫人（countess）
+        // このカードは場に出せないため効果なし
         break;
 
       // TODO: 他のカード（道化、騎士、僧侶、魔術師、将軍、大臣、姫）の処理を追加
