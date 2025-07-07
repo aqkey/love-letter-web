@@ -10,7 +10,7 @@ const CARD_LIST = [
   { id: 7, name: "大臣", enName: "minister", cost: 7, count: 1 },
   { id: 8, name: "姫", enName: "princess", cost: 8, count: 1 },
   { id: 9, name: "姫(眼鏡)", enName: "princess_glasses", cost: 8, count: 1 },
-  { id: 10, name: "伯爵夫人", enName: "countess", cost: 7, count: 1 },
+  { id: 10, name: "伯爵夫人", enName: "countess", cost: 8, count: 1 },
 ];
 
 class GameManager {
@@ -129,6 +129,9 @@ class GameManager {
     const newCard = this.deck.pop();
 
     player.hand.push(newCard);
+    if (this.deck.length === 0) {
+      this.handleCountessElimination(io);
+    }
     player.isEliminated = false;
 
     console.log(`${player.name} は姫(眼鏡)の効果で復活しました。`);
@@ -141,6 +144,26 @@ class GameManager {
       io.to(this.roomId).emit("deckCount", { deckCount: this.deck.length });
     }
     return true;
+  }
+
+  handleCountessElimination(io) {
+    Object.keys(this.players).forEach((pid) => {
+      const p = this.players[pid];
+      if (!p.isEliminated && p.hand.some((c) => c.id === 10)) {
+        p.isEliminated = true;
+        console.log(`${p.name} は伯爵夫人を持ったまま山札が尽きたため脱落しました。`);
+        const revived = this.checkPrincessGlassesRevival(pid, io);
+        if (!revived && io) {
+          io.to(this.roomId).emit("playerEliminated", { playerId: pid, name: p.name });
+        }
+      }
+    });
+    const alive = Object.values(this.players).filter((p) => !p.isEliminated);
+    if (alive.length === 1 && io) {
+      io.to(this.roomId).emit("gameEnded", { winner: alive[0].name });
+    } else if (io) {
+      this.determineWinnerByHandCost(io);
+    }
   }
 
   addPlayer(socketId, name) {
@@ -217,29 +240,16 @@ class GameManager {
     // 山札がない場合
     if (!this.deck.length) {
       console.log(`山札がありません。`);
-      Object.keys(this.players).forEach((pid) => {
-        const p = this.players[pid];
-        if (!p.isEliminated && p.hand.some((c) => c.id === 10)) {
-          p.isEliminated = true;
-          console.log(`${p.name} は伯爵夫人を持ったまま山札が尽きたため脱落しました。`);
-          const revived = this.checkPrincessGlassesRevival(pid, io);
-          if (!revived && io) {
-            io.to(this.roomId).emit("playerEliminated", { playerId: pid, name: p.name });
-          }
-        }
-      });
-      const alive = Object.values(this.players).filter((p) => !p.isEliminated);
-      if (alive.length === 1 && io) {
-        io.to(this.roomId).emit("gameEnded", { winner: alive[0].name });
-      } else if (io) {
-        this.determineWinnerByHandCost(io);
-      }
+      this.handleCountessElimination(io);
       return null;
     }
 
     const card = this.deck.pop();
     player.hand.push(card);
-    player.hasDrawnCard = true; 
+    player.hasDrawnCard = true;
+    if (this.deck.length === 0) {
+      this.handleCountessElimination(io);
+    }
     return card;
   }
 
@@ -429,6 +439,9 @@ class GameManager {
               this.players[targetId].hand = [newCard];
               io.to(targetId).emit("replaceCard", newCard);
               this.checkMinisterElimination(targetId, io);
+              if (this.deck.length === 0) {
+                this.handleCountessElimination(io);
+              }
             }
           }
         }
