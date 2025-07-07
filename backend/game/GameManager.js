@@ -10,6 +10,7 @@ const CARD_LIST = [
   { id: 7, name: "大臣", enName: "minister", cost: 7, count: 1 },
   { id: 8, name: "姫", enName: "princess", cost: 8, count: 1 },
   { id: 9, name: "姫(眼鏡)", enName: "princess_glasses", cost: 8, count: 1 },
+  { id: 10, name: "伯爵夫人", enName: "countess", cost: 7, count: 1 },
 ];
 
 class GameManager {
@@ -243,6 +244,17 @@ class GameManager {
     // 
     if (!player.hand || player.hand.length <= cardIndex) return null;
 
+    const selectedCard = player.hand[cardIndex];
+    const hasCountess = player.hand.some((c) => c.id === 10);
+    const hasPrinceOrKing = player.hand.some((c) => c.id === 5 || c.id === 6);
+    if (hasCountess && hasPrinceOrKing && selectedCard.id !== 10) {
+      console.log(`${player.name} は伯爵夫人を持っているため他のカードを出せません。`);
+      if (io) {
+        io.to(playerId).emit("errorMessage", "伯爵夫人を出さなければなりません。");
+      }
+      return null;
+    }
+
     const card = player.hand.splice(cardIndex, 1)[0];
     if (!card) return null;
 
@@ -446,6 +458,9 @@ class GameManager {
         break;
       case 9: // 姫(眼鏡)
         // 特殊効果は脱落時に処理されるため、出したときの効果はなし
+        break;
+      case 10: // 伯爵夫人（countess）
+        // 効果なし
         break;
 
       // TODO: 他のカード（道化、騎士、僧侶、魔術師、将軍、大臣、姫）の処理を追加
