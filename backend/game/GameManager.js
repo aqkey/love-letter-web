@@ -217,7 +217,21 @@ class GameManager {
     // 山札がない場合
     if (!this.deck.length) {
       console.log(`山札がありません。`);
-      if (io) {
+      Object.keys(this.players).forEach((pid) => {
+        const p = this.players[pid];
+        if (!p.isEliminated && p.hand.some((c) => c.id === 10)) {
+          p.isEliminated = true;
+          console.log(`${p.name} は伯爵夫人を持ったまま山札が尽きたため脱落しました。`);
+          const revived = this.checkPrincessGlassesRevival(pid, io);
+          if (!revived && io) {
+            io.to(this.roomId).emit("playerEliminated", { playerId: pid, name: p.name });
+          }
+        }
+      });
+      const alive = Object.values(this.players).filter((p) => !p.isEliminated);
+      if (alive.length === 1 && io) {
+        io.to(this.roomId).emit("gameEnded", { winner: alive[0].name });
+      } else if (io) {
         this.determineWinnerByHandCost(io);
       }
       return null;
@@ -245,12 +259,10 @@ class GameManager {
     if (!player.hand || player.hand.length <= cardIndex) return null;
 
     const selectedCard = player.hand[cardIndex];
-    const hasCountess = player.hand.some((c) => c.id === 10);
-    const hasPrinceOrKing = player.hand.some((c) => c.id === 5 || c.id === 6);
-    if (hasCountess && hasPrinceOrKing && selectedCard.id !== 10) {
-      console.log(`${player.name} は伯爵夫人を持っているため他のカードを出せません。`);
+    if (selectedCard.id === 10) {
+      console.log(`${player.name} は伯爵夫人を出すことはできません。`);
       if (io) {
-        io.to(playerId).emit("errorMessage", "伯爵夫人を出さなければなりません。");
+        io.to(playerId).emit("errorMessage", "伯爵夫人は場に出せません。");
       }
       return null;
     }
@@ -460,7 +472,7 @@ class GameManager {
         // 特殊効果は脱落時に処理されるため、出したときの効果はなし
         break;
       case 10: // 伯爵夫人（countess）
-        // 効果なし
+        // このカードは場に出せないため効果なし
         break;
 
       // TODO: 他のカード（道化、騎士、僧侶、魔術師、将軍、大臣、姫）の処理を追加

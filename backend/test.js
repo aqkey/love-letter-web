@@ -1,35 +1,39 @@
 const assert = require('assert');
 const GameManager = require('./game/GameManager');
 
-function testCountessRule() {
-  const gm = new GameManager('room1');
+function testCountessUnplayable() {
+  const gm = new GameManager('r1');
   gm.players = {
-    A: { id: 'A', name: 'A', hand: [
-      { id: 10, name: '伯爵夫人', enName: 'countess', cost: 7 },
-      { id: 5, name: '魔術師', enName: 'sorcerer', cost: 5 }
-    ], isEliminated: false, isProtected: false, hasDrawnCard: true },
-    B: { id: 'B', name: 'B', hand: [
-      { id: 1, name: '兵士', enName: 'soldier', cost: 1 }
-    ], isEliminated: false, isProtected: false, hasDrawnCard: true }
+    A: { id: 'A', name: 'A', hand: [ { id: 10, name: '伯爵夫人', enName: 'countess', cost: 7 } ], isEliminated: false, isProtected: false, hasDrawnCard: true }
   };
-  gm.turnOrder = ['A', 'B'];
+  gm.turnOrder = ['A'];
 
-  let result = gm.playCard('A', 1, 'B', null, null);
-  assert.strictEqual(result, null, 'Should not play sorcerer while holding Countess');
-  assert.strictEqual(gm.players['A'].hand.length, 2, 'Hand should remain unchanged');
+  const result = gm.playCard('A', 0, null, null, null);
+  assert.strictEqual(result, null, 'Countess should not be playable');
+  assert.strictEqual(gm.players['A'].hand.length, 1, 'Countess remains in hand');
+}
 
-  result = gm.playCard('A', 0, 'B', null, null);
-  assert(result && result.id === 10, 'Should play the Countess');
-  assert.strictEqual(gm.players['A'].hand.length, 1, 'Countess should be discarded');
+function testCountessEliminatedWhenDeckEmpty() {
+  const gm = new GameManager('r2');
+  gm.players = {
+    A: { id: 'A', name: 'A', hand: [ { id: 10, name: '伯爵夫人', enName: 'countess', cost: 7 } ], isEliminated: false, isProtected: false, hasDrawnCard: false },
+    B: { id: 'B', name: 'B', hand: [ { id: 1, name: '兵士', enName: 'soldier', cost: 1 } ], isEliminated: false, isProtected: false, hasDrawnCard: false }
+  };
+  gm.turnOrder = ['A','B'];
+  gm.deck = [];
+
+  gm.drawCard('A');
+  assert.strictEqual(gm.players['A'].isEliminated, true, 'Player holding Countess should be eliminated when deck is empty');
 }
 
 function testCountessInDeck() {
-  const gm = new GameManager('room2');
+  const gm = new GameManager('r3');
   gm.createDeck();
   const countessCards = gm.deck.filter(c => c.id === 10);
   assert.strictEqual(countessCards.length, 1, 'Deck should contain one Countess');
 }
 
-testCountessRule();
+testCountessUnplayable();
+testCountessEliminatedWhenDeckEmpty();
 testCountessInDeck();
 console.log('All tests passed!');
