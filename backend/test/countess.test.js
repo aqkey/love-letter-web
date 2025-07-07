@@ -1,5 +1,5 @@
 const assert = require('assert');
-const GameManager = require('./game/GameManager');
+const GameManager = require('../game/GameManager');
 
 function testCountessUnplayable() {
   const gm = new GameManager('r1');
