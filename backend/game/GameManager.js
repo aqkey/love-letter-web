@@ -426,6 +426,13 @@ class GameManager {
             !this.players[targetId].isEliminated &&
             !this.players[targetId].isProtected
           ) {
+            const targetHand = this.players[targetId].hand;
+            if (targetHand.length && targetHand[0].id === 10) {
+              console.log(
+                `${this.players[targetId].name} の伯爵夫人は魔術師の効果で捨てられません。`
+              );
+              break;
+            }
             const discarded = this.players[targetId].hand.splice(0, 1)[0];
             if (discarded) {
               this.playedCards.push({

@@ -47,8 +47,50 @@ function testCountessInDeck() {
   assert.strictEqual(countessCards.length, 1, 'Deck should contain one Countess');
 }
 
+function testSorcererCannotDiscardCountess() {
+  const gm = new GameManager('r4');
+  gm.players = {
+    A: {
+      id: 'A',
+      name: 'A',
+      hand: [
+        { id: 5, name: '魔術師', enName: 'sorcerer', cost: 5 },
+        { id: 1, name: '兵士', enName: 'soldier', cost: 1 },
+      ],
+      isEliminated: false,
+      isProtected: false,
+      hasDrawnCard: true,
+    },
+    B: {
+      id: 'B',
+      name: 'B',
+      hand: [{ id: 10, name: '伯爵夫人', enName: 'countess', cost: 8 }],
+      isEliminated: false,
+      isProtected: false,
+      hasDrawnCard: false,
+    },
+  };
+  gm.turnOrder = ['A', 'B'];
+  gm.deck = [{ id: 1, name: '兵士', enName: 'soldier', cost: 1 }];
+
+  gm.playCard('A', 0, 'B', null, null);
+
+  assert.strictEqual(
+    gm.players['B'].hand.length,
+    1,
+    'Countess should remain in hand after sorcerer effect'
+  );
+  assert.strictEqual(
+    gm.players['B'].hand[0].id,
+    10,
+    'Countess card should not be discarded'
+  );
+  assert.strictEqual(gm.deck.length, 1, 'Deck should not be used when countess targeted');
+}
+
 testCountessUnplayable();
 testCountessEliminatedWhenDeckEmpty();
 testCountessEliminatedAfterLastDraw();
 testCountessInDeck();
+testSorcererCannotDiscardCountess();
 console.log('All tests passed!');
