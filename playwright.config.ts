@@ -76,4 +76,10 @@ export default defineConfig({
   //   url: 'http://localhost:3000',
   //   reuseExistingServer: !process.env.CI,
   // },
+  webServer: {
+    command: 'npm start',
+    url: 'http://localhost:3000', 
+    port: 3000,
+    reuseExistingServer: !process.env.CI,
+  },
 });
