@@ -33,5 +33,5 @@ node_modules/
 /playwright/.cache/
 
 # log
-./frontend/frontend.log
-./backend/backend.log
+backend/backend.log
+frontend/frontend.log
