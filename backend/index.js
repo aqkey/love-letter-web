@@ -3,8 +3,10 @@ const http = require("http");
 const { Server } = require("socket.io");
 const cors = require("cors");
 const GameManager = require("./game/GameManager");
+const { CARD_LIST } = GameManager;
 
 const app = express();
+app.use(express.json());
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
@@ -14,6 +16,38 @@ const io = new Server(server, {
 });
 
 const games = {}; // { roomId: GameManager }
+
+app.post("/test/setup", (req, res) => {
+  const { roomId, deck, hands } = req.body;
+  const game = games[roomId];
+  if (!game) {
+    return res.status(404).json({ error: "Room not found" });
+  }
+
+  if (Array.isArray(deck)) {
+    game.deck = deck.map((id) => {
+      const cardInfo = CARD_LIST.find((c) => c.id === id);
+      return cardInfo ? { ...cardInfo } : { id };
+    });
+  }
+
+  if (hands && typeof hands === "object") {
+    Object.entries(hands).forEach(([playerId, cardIds]) => {
+      if (!game.players[playerId] || !Array.isArray(cardIds)) return;
+      game.players[playerId].hand = cardIds.map((id) => {
+        const cardInfo = CARD_LIST.find((c) => c.id === id);
+        return cardInfo ? { ...cardInfo } : { id };
+      });
+      game.players[playerId].isEliminated = false;
+      game.players[playerId].isProtected = false;
+      game.players[playerId].hasDrawnCard = false;
+      io.to(playerId).emit("initialHand", game.players[playerId].hand);
+    });
+  }
+
+  io.to(roomId).emit("deckCount", { deckCount: game.deck.length });
+  res.json({ success: true });
+});
 
 io.on("connection", (socket) => {
   console.log("A user connected:", socket.id);

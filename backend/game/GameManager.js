@@ -532,3 +532,4 @@ class GameManager {
 }
 
 module.exports = GameManager;
+module.exports.CARD_LIST = CARD_LIST;
