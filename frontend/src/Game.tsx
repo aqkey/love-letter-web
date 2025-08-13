@@ -44,6 +44,7 @@ const Game: React.FC<GameProps> = ({
   const [playedCards, setPlayedCards] = useState<PlayedCardEntry[]>([]);
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [deckCount, setDeckCount] = useState<number>(0);
+  const [eventLogs, setEventLogs] = useState<string[]>([]);
 
   // プレイヤーリスト（ターゲット選択用）
   const [players, setPlayers] = useState<PlayerInfo[]>([]);
@@ -100,6 +101,7 @@ const Game: React.FC<GameProps> = ({
           }))
         );
       }
+      setEventLogs((prev) => [...prev, "ゲームが開始されました"]);
     });
 
     socket.on("roomUpdate", (data) => {
@@ -133,6 +135,10 @@ const Game: React.FC<GameProps> = ({
     socket.on("cardPlayed", (data: CardPlayedData) => {
       if (!data || !data.card) return;
       setPlayedCards(data.playedCards);
+      setEventLogs((prev) => [
+        ...prev,
+        `${data.player} さんが ${data.card.name} を出しました`,
+      ]);
       if (data.playerId === socket.id) {
         setHand((prev) =>
           prev.filter((_, i) => i !== prev.findIndex((c) => c.id === data.card.id && c.name === data.card.name))
@@ -142,6 +148,7 @@ const Game: React.FC<GameProps> = ({
 
     socket.on("nextTurn", (data) => {
       setCurrentPlayer(data.currentPlayer);
+      setEventLogs((prev) => [...prev, `${data.currentPlayer} さんのターンです`]);
     });
 
     // 手札を見る（道化の効果）モーダル表示
@@ -158,6 +165,7 @@ const Game: React.FC<GameProps> = ({
         )
       );
       setErrorMessage(`${name} さんが脱落しました`);
+      setEventLogs((prev) => [...prev, `${name} さんが脱落しました`]);
       setTimeout(() => setErrorMessage(""), 3000);
     });
 
@@ -168,16 +176,19 @@ const Game: React.FC<GameProps> = ({
         )
       );
       setErrorMessage(`${name} さんが復活しました`);
+      setEventLogs((prev) => [...prev, `${name} さんが復活しました`]);
       setTimeout(() => setErrorMessage(""), 3000);
     });
 
     socket.on("gameEnded", ({ winner }) => {
       setWinner(winner);
       setScreen("result");
+      setEventLogs((prev) => [...prev, `${winner} さんの勝利です`]);
     });
 
     socket.on("errorMessage", (message) => {
       setErrorMessage(message);
+      setEventLogs((prev) => [...prev, message]);
       setTimeout(() => setErrorMessage(""), 3000);
     });
 
@@ -492,6 +503,18 @@ const Game: React.FC<GameProps> = ({
           ))}
         </ul>
       </div>
+    
+      <div className="mt-4">
+        <h3 className="text-md font-bold mb-2">イベントログ</h3>
+        <div className="border rounded p-2 h-32 overflow-y-auto bg-gray-50">
+          {eventLogs.map((log, index) => (
+            <p key={index} className="text-sm">
+              {log}
+            </p>
+          ))}
+        </div>
+      </div>
+      
     </div>
   );
 };
