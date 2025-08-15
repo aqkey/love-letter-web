@@ -11,6 +11,7 @@ const CARD_LIST = [
   { id: 8, name: "姫", enName: "princess", cost: 8, count: 1 },
   { id: 9, name: "姫(眼鏡)", enName: "princess_glasses", cost: 8, count: 1 },
   { id: 10, name: "伯爵夫人", enName: "countess", cost: 8, count: 1 },
+  { id: 11, name: "女侯爵", enName: "marchioness", cost: 7, count: 1 },
 ];
 
 class GameManager {
@@ -269,6 +270,20 @@ class GameManager {
     if (!player.hand || player.hand.length <= cardIndex) return null;
 
     const selectedCard = player.hand[cardIndex];
+    const totalCost = player.hand.reduce((sum, c) => sum + c.cost, 0);
+    const hasMarchioness = player.hand.some((c) => c.id === 11);
+    if (hasMarchioness && totalCost >= 12 && selectedCard.id !== 11) {
+      console.log(
+        `${player.name} は手札の合計コストが12以上のため女侯爵を出さなければなりません。`
+      );
+      if (io) {
+        io.to(playerId).emit(
+          "errorMessage",
+          "手札のコスト合計が12以上のため、女侯爵を出さなければなりません。"
+        );
+      }
+      return null;
+    }
     if (selectedCard.id === 10) {
       console.log(`${player.name} は伯爵夫人を出すことはできません。`);
       if (io) {
@@ -494,7 +509,9 @@ class GameManager {
       case 10: // 伯爵夫人（countess）
         // このカードは場に出せないため効果なし
         break;
-
+      case 11: // 女侯爵（marchioness）
+        // 強制的に出す以外の効果はなし
+        break;
       // TODO: 他のカード（道化、騎士、僧侶、魔術師、将軍、大臣、姫）の処理を追加
       default:
         console.log(`カードID ${card.id} の効果はまだ実装されていません。`);
