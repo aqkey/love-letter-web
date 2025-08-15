@@ -333,20 +333,25 @@ const Game: React.FC<GameProps> = ({
 
       {/* 手札表示 */}
       <div className="grid grid-cols-2 gap-2 mb-4">
-        {hand.map((card, index) => (
-          <button
-            key={index}
-            onClick={() => handlePlay(index)}
-            disabled={playerName !== currentPlayer || hand.length < 2}
-            className={`bg-pink-500 text-white px-4 py-2 rounded ${
-              playerName !== currentPlayer || hand.length < 2
-                ? "opacity-50 cursor-not-allowed"
-                : ""
-            }`}
-          >
-            {card.name}
-          </button>
-        ))}
+        {hand.map((card, index) => {
+          const disabled = playerName !== currentPlayer || hand.length < 2;
+          return (
+            <button
+              key={index}
+              onClick={() => handlePlay(index)}
+              disabled={disabled}
+              className={`rounded overflow-hidden ${
+                disabled ? "opacity-50 cursor-not-allowed" : ""
+              }`}
+            >
+              <img
+                src={`/cards/${card.enName}.svg`}
+                alt={card.name}
+                className="w-full h-auto"
+              />
+            </button>
+          );
+        })}
       </div>
 
       {/* ターゲット選択モーダル（道化・騎士用） */}
@@ -405,7 +410,7 @@ const Game: React.FC<GameProps> = ({
               <ul>
                 {CARD_OPTIONS.map((c) => (
                   <li key={c.id} className="mb-1">
-                    <label>
+                    <label className="flex items-center gap-2">
                       <input
                         type="radio"
                         name="guessCard"
@@ -413,7 +418,12 @@ const Game: React.FC<GameProps> = ({
                         onChange={() => setGuessCardId(c.id)}
                         className="mr-1"
                       />
-                      {c.name}
+                      <img
+                        src={`/cards/${c.enName}.svg`}
+                        alt={c.name}
+                        className="w-8 h-auto"
+                      />
+                      <span>{c.name}</span>
                     </label>
                   </li>
                 ))}
@@ -479,9 +489,16 @@ const Game: React.FC<GameProps> = ({
         <div className="fixed z-20 left-0 top-0 w-full h-full bg-black bg-opacity-40 flex items-center justify-center">
           <div className="bg-white p-6 rounded shadow text-center">
             <h3 className="mb-4 text-lg font-bold">手札を見る</h3>
-            <p className="mb-4">
+            <p className="mb-2">
               <span className="font-bold">{seeHandInfo.targetName}</span>
               さんの手札は
+            </p>
+            <img
+              src={`/cards/${seeHandInfo.card.enName}.svg`}
+              alt={seeHandInfo.card.name}
+              className="w-32 h-auto mx-auto mb-2"
+            />
+            <p className="mb-4">
               <span className="text-pink-500 font-bold">「{seeHandInfo.card.name}」</span>
               です
             </p>
@@ -499,8 +516,13 @@ const Game: React.FC<GameProps> = ({
         <h3 className="text-md font-bold mb-2">場に出たカード履歴</h3>
         <ul className="list-disc list-inside">
           {playedCards.map((entry, index) => (
-            <li key={index}>
-              {entry.player} さん: {entry.card.name}
+            <li key={index} className="flex items-center gap-2">
+              <span>{entry.player} さん:</span>
+              <img
+                src={`/cards/${entry.card.enName}.svg`}
+                alt={entry.card.name}
+                className="w-12 h-auto"
+              />
             </li>
           ))}
         </ul>
