@@ -12,6 +12,7 @@ const CARD_LIST = [
   { id: 9, name: "姫(眼鏡)", enName: "princess_glasses", cost: 8, count: 1 },
   { id: 10, name: "伯爵夫人", enName: "countess", cost: 8, count: 1 },
   { id: 11, name: "女侯爵", enName: "marchioness", cost: 7, count: 1 },
+  { id: 12, name: "姫(爆弾)", enName: "princess_bomb", cost: 8, count: 1 },
 ];
 
 class GameManager {
@@ -511,6 +512,22 @@ class GameManager {
         break;
       case 11: // 女侯爵（marchioness）
         // 強制的に出す以外の効果はなし
+        break;
+      case 12: // 姫(爆弾)
+        player.isEliminated = true;
+        if (io) {
+          io.to(this.roomId).emit("playerEliminated", {
+            playerId: playerId,
+            name: player.name,
+          });
+          const alive = Object.values(this.players).filter((p) => !p.isEliminated);
+          if (alive.length <= 1) {
+            const winner = alive.length === 1 ? alive[0].name : "引き分け";
+            io.to(this.roomId).emit("gameEnded", { winner });
+          } else {
+            this.determineWinnerByHandCost(io);
+          }
+        }
         break;
       // TODO: 他のカード（道化、騎士、僧侶、魔術師、将軍、大臣、姫）の処理を追加
       default:

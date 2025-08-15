@@ -73,6 +73,7 @@ const Game: React.FC<GameProps> = ({
     { id: 9, name: "姫(眼鏡)", enName: "princess_glasses", cost: 8 },
     { id: 10, name: "伯爵夫人", enName: "countess", cost: 8 },
     { id: 11, name: "女侯爵", enName: "marchioness", cost: 7 },
+    { id: 11, name: "姫(爆弾)", enName: "princess_bomb", cost: 8 },
   ];
 
   // 手札を見るモーダル
