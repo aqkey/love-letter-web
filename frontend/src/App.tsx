@@ -1,12 +1,32 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Lobby from "./Lobby";
 import Game from "./Game";
 
 const App: React.FC = () => {
-  const [screen, setScreen] = useState<"lobby" | "game" | "result">("lobby");
-  const [roomId, setRoomId] = useState<string>("");
-  const [playerName, setPlayerName] = useState<string>("");
+  const [screen, setScreen] = useState<"lobby" | "game" | "result">(
+    () =>
+      (localStorage.getItem("screen") as "lobby" | "game" | "result") ||
+      "lobby"
+  );
+  const [roomId, setRoomId] = useState<string>(
+    () => localStorage.getItem("roomId") || ""
+  );
+  const [playerName, setPlayerName] = useState<string>(
+    () => localStorage.getItem("playerName") || ""
+  );
   const [winner, setWinner] = useState<string>("");
+
+  useEffect(() => {
+    localStorage.setItem("screen", screen);
+  }, [screen]);
+
+  useEffect(() => {
+    localStorage.setItem("roomId", roomId);
+  }, [roomId]);
+
+  useEffect(() => {
+    localStorage.setItem("playerName", playerName);
+  }, [playerName]);
 
   return (
     <div className="min-h-screen flex items-center justify-center">

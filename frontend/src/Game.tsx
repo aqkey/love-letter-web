@@ -81,6 +81,13 @@ const Game: React.FC<GameProps> = ({
   const [seeHandInfo, setSeeHandInfo] = useState<{ targetName: string; card: Card } | null>(null);
 
   useEffect(() => {
+    const storedId = localStorage.getItem("playerId");
+    if (storedId) {
+      socket.emit("reconnectPlayer", { roomId, playerId: storedId });
+    }
+  }, [roomId]);
+
+  useEffect(() => {
     console.log("【playersの中身一覧】");
     players.forEach((player, index) => {
     console.log(`index: ${index}`);
@@ -116,6 +123,25 @@ const Game: React.FC<GameProps> = ({
             isEliminated: p.isEliminated ?? false,
           }))
         );
+    });
+
+    socket.on("rejoinSuccess", (data) => {
+      setHand(data.hand || []);
+      setPlayedCards(data.playedCards || []);
+      setCurrentPlayer(data.currentPlayer || "");
+      if (data.players && data.players.length > 0) {
+        setPlayers(
+          data.players.map((p: any) => ({
+            id: p.id,
+            name: p.name,
+            isEliminated: p.isEliminated ?? false,
+          }))
+        );
+      }
+      if (data.deckCount !== undefined) {
+        setDeckCount(data.deckCount);
+      }
+      localStorage.setItem("playerId", socket.id);
     });
 
     socket.on("initialHand", (hand) => {
@@ -197,6 +223,7 @@ const Game: React.FC<GameProps> = ({
     return () => {
       socket.off("gameStarted");
       socket.off("roomUpdate");
+      socket.off("rejoinSuccess");
       socket.off("initialHand");
       socket.off("cardDrawn");
       socket.off("replaceCard");

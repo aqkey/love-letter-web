@@ -20,6 +20,7 @@ const Lobby: React.FC<LobbyProps> = ({
 
   const handleCreateRoom = () => {
     socket.emit("createRoom", { roomId, name: playerName });
+    localStorage.setItem("playerId", socket.id);
   };
 
   const handleStartGame = () => {

@@ -77,6 +77,32 @@ io.on("connection", (socket) => {
     }
   });
 
+  socket.on("reconnectPlayer", ({ roomId, playerId }) => {
+    const game = games[roomId];
+    if (!game) return;
+    const player = game.players[playerId];
+    if (!player) return;
+    delete game.players[playerId];
+    const idx = game.turnOrder.indexOf(playerId);
+    if (idx !== -1) {
+      game.turnOrder[idx] = socket.id;
+    }
+    player.id = socket.id;
+    game.players[socket.id] = player;
+    socket.join(roomId);
+    socket.emit("rejoinSuccess", {
+      hand: player.hand,
+      playedCards: game.playedCards,
+      currentPlayer: game.players[game.getCurrentPlayerId()].name,
+      players: Object.values(game.players).map((p) => ({
+        id: p.id,
+        name: p.name,
+        isEliminated: p.isEliminated,
+      })),
+      deckCount: game.deck.length,
+    });
+  });
+
   socket.on("startGame", ({ roomId }) => {
     const game = games[roomId];
     logPlayerHands(game);
