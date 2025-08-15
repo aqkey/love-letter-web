@@ -81,13 +81,6 @@ const Game: React.FC<GameProps> = ({
   const [seeHandInfo, setSeeHandInfo] = useState<{ targetName: string; card: Card } | null>(null);
 
   useEffect(() => {
-    const storedId = localStorage.getItem("playerId");
-    if (storedId) {
-      socket.emit("reconnectPlayer", { roomId, playerId: storedId });
-    }
-  }, [roomId]);
-
-  useEffect(() => {
     console.log("【playersの中身一覧】");
     players.forEach((player, index) => {
     console.log(`index: ${index}`);
@@ -141,7 +134,6 @@ const Game: React.FC<GameProps> = ({
       if (data.deckCount !== undefined) {
         setDeckCount(data.deckCount);
       }
-      localStorage.setItem("playerId", socket.id);
     });
 
     socket.on("initialHand", (hand) => {

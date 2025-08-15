@@ -2,20 +2,31 @@ const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 const cors = require("cors");
+const cookie = require("cookie");
+const crypto = require("crypto");
 const GameManager = require("./game/GameManager");
 const { CARD_LIST } = GameManager;
 
 const app = express();
+app.use(
+  cors({
+    origin: "http://localhost:3000",
+    credentials: true,
+  })
+);
 app.use(express.json());
+
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
     origin: "http://localhost:3000",
     methods: ["GET", "POST"],
+    credentials: true,
   },
 });
 
 const games = {}; // { roomId: GameManager }
+const sessions = {}; // { sid: { roomId, playerId } }
 
 app.post("/test/setup", (req, res) => {
   const { roomId, deck, hands } = req.body;
@@ -51,39 +62,26 @@ app.post("/test/setup", (req, res) => {
 
 io.on("connection", (socket) => {
   console.log("A user connected:", socket.id);
-// if room is not exist, create new room. else, enter existing room.
-  socket.on("createRoom", async ({ roomId, name }) => {
-    if (!games[roomId]) {
-      games[roomId] = new GameManager(roomId);
-      console.log("Room created:", roomId);
-    }
-    const success = games[roomId].addPlayer(socket.id, name);
-    if (success) {
-      socket.join(roomId);
-      const tmp = socket.id//後で消す
-      const roomSockets = await io.in(roomId).fetchSockets();
-      const userList = roomSockets.map((s) => s.id);
-      console.log(`Room ${roomId} に現在joinしているユーザー一覧:`, userList);
-      console.log(`追加したプレイヤーは:`, games[roomId].players[tmp].id);
-      io.to(roomId).emit("roomUpdate", {
-        players: Object.values(games[roomId].players).map((p) => ({
-          id: p.id,
-          name: p.name,
-          isEliminated: p.isEliminated,
-          isProtected: p.isProtected,
-          ishasDrawnCard: p.ishasDrawnCard
-        })),
-      });
-    }
-  });
+  const cookies = cookie.parse(socket.request.headers.cookie || "");
+  let sid = cookies.sid;
+  if (!sid) {
+    sid = crypto.randomUUID();
+    socket.request.res?.setHeader("Set-Cookie", `sid=${sid}; Path=/`);
+  }
+  sessions[sid] = sessions[sid] || {};
+  const sess = sessions[sid];
 
-  socket.on("reconnectPlayer", ({ roomId, playerId }) => {
+  if (
+    sess.roomId &&
+    games[sess.roomId] &&
+    games[sess.roomId].players[sess.playerId]
+  ) {
+    const roomId = sess.roomId;
+    const oldId = sess.playerId;
     const game = games[roomId];
-    if (!game) return;
-    const player = game.players[playerId];
-    if (!player) return;
-    delete game.players[playerId];
-    const idx = game.turnOrder.indexOf(playerId);
+    const player = game.players[oldId];
+    delete game.players[oldId];
+    const idx = game.turnOrder.indexOf(oldId);
     if (idx !== -1) {
       game.turnOrder[idx] = socket.id;
     }
@@ -101,6 +99,44 @@ io.on("connection", (socket) => {
       })),
       deckCount: game.deck.length,
     });
+    io.to(roomId).emit("roomUpdate", {
+      players: Object.values(game.players).map((p) => ({
+        id: p.id,
+        name: p.name,
+        isEliminated: p.isEliminated,
+        isProtected: p.isProtected,
+        ishasDrawnCard: p.ishasDrawnCard,
+      })),
+    });
+    sess.playerId = socket.id;
+  }
+
+  // if room is not exist, create new room. else, enter existing room.
+  socket.on("createRoom", async ({ roomId, name }) => {
+    if (!games[roomId]) {
+      games[roomId] = new GameManager(roomId);
+      console.log("Room created:", roomId);
+    }
+    const success = games[roomId].addPlayer(socket.id, name);
+    if (success) {
+      socket.join(roomId);
+      const tmp = socket.id//後で消す
+      const roomSockets = await io.in(roomId).fetchSockets();
+      const userList = roomSockets.map((s) => s.id);
+      console.log(`Room ${roomId} に現在joinしているユーザー一覧:`, userList);
+      console.log(`追加したプレイヤーは:`, games[roomId].players[tmp].id);
+      sess.roomId = roomId;
+      sess.playerId = socket.id;
+      io.to(roomId).emit("roomUpdate", {
+        players: Object.values(games[roomId].players).map((p) => ({
+          id: p.id,
+          name: p.name,
+          isEliminated: p.isEliminated,
+          isProtected: p.isProtected,
+          ishasDrawnCard: p.ishasDrawnCard
+        })),
+      });
+    }
   });
 
   socket.on("startGame", ({ roomId }) => {
