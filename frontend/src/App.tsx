@@ -1,26 +1,49 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import React, { useState } from "react";
+import Lobby from "./Lobby";
+import Game from "./Game";
 
-function App() {
+const App: React.FC = () => {
+  const [screen, setScreen] = useState<"lobby" | "game" | "result">("lobby");
+  const [roomId, setRoomId] = useState<string>("");
+  const [playerName, setPlayerName] = useState<string>("");
+  const [winner, setWinner] = useState<string>("");
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+    <div className="min-h-screen flex items-center justify-center">
+      {screen === "lobby" && (
+        <Lobby
+          setScreen={setScreen}
+          roomId={roomId}
+          setRoomId={setRoomId}
+          playerName={playerName}
+          setPlayerName={setPlayerName}
+        />
+      )}
+      {screen === "game" && (
+        <Game
+          setScreen={setScreen}
+          roomId={roomId}
+          playerName={playerName}
+          setWinner={setWinner}
+        />
+      )}
+      {screen === "result" && (
+        <div className="max-w-md mx-auto bg-white p-4 rounded shadow">
+          {winner === "引き分け" ? (
+            <h1 className="text-2xl mb-4">引き分けでした！</h1>
+          ) : (
+            <h1 className="text-2xl mb-4">勝者: {winner} さん！</h1>
+          )}
+          <button
+            onClick={() => setScreen("lobby")}
+            className="bg-blue-500 text-white px-4 py-2 rounded w-full"
+          >
+            ロビーに戻る
+          </button>
+        </div>
+      )}
     </div>
   );
-}
+};
 
 export default App;

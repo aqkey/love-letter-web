@@ -24,3 +24,14 @@ frontend/node_modules/
 ./frontend/npm-debug.log*
 ./frontend/yarn-debug.log*
 ./frontend/yarn-error.log*
+
+# Playwright
+node_modules/
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
+# log
+backend/backend.log
+frontend/frontend.log
