@@ -22,6 +22,22 @@ export function waitForPlayersFromConsole(page1: Page): Promise<any[]> {
     });
   });
 }
+export function waitForPlayers3FromConsole(page1: Page): Promise<any[]> {
+  return new Promise(resolve => {
+    page1.on('console', async msg => {
+      console.log(`[browser console] ${msg.text()}`);
+      if (msg.text().startsWith('gameStarted players:')) {
+        const args = msg.args();
+        if (args.length >= 2) {
+          const arr = await args[1].jsonValue();
+          if (Array.isArray(arr) && arr.length === 3) {
+            resolve(arr);
+          }
+        }
+      }
+    });
+  });
+}
 
 
 /**
