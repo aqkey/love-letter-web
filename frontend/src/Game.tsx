@@ -6,6 +6,8 @@ interface GameProps {
   roomId: string;
   playerName: string;
   setWinner: (name: string) => void;
+  setRoomId: (roomId: string) => void;
+  setPlayerName: (name: string) => void;
 }
 
 interface Card {
@@ -38,6 +40,8 @@ const Game: React.FC<GameProps> = ({
   roomId,
   playerName,
   setWinner,
+  setRoomId,
+  setPlayerName,
 }) => {
   const [hand, setHand] = useState<Card[]>([]);
   const [currentPlayer, setCurrentPlayer] = useState<string>("");
@@ -307,6 +311,16 @@ const Game: React.FC<GameProps> = ({
     setSorcererTargetId("");
   };
 
+  const handleReturnLobby = () => {
+    socket.emit("leaveGame", { roomId });
+    localStorage.removeItem("roomId");
+    localStorage.removeItem("playerName");
+    document.cookie = "sid=; Max-Age=0; path=/";
+    setRoomId("");
+    setPlayerName("");
+    setScreen("lobby");
+  };
+
   // 自分以外で脱落していないプレイヤー
   const otherPlayers = players.filter(
     (p) => p.name !== playerName && !p.isEliminated
@@ -318,6 +332,13 @@ const Game: React.FC<GameProps> = ({
       <p className="font-bold mb-2">あなたの名前：{playerName}</p>
       <h2 className="text-lg mb-2">ターン：{currentPlayer}</h2>
       <p className="mb-2">山札残り枚数：{deckCount}</p>
+
+      <button
+        onClick={handleReturnLobby}
+        className="bg-gray-500 text-white px-4 py-2 rounded mb-4 w-full"
+      >
+        ロビーに戻る
+      </button>
 
       <div className="mb-4">
         <h3 className="text-md font-bold mb-2">プレイヤー状態</h3>

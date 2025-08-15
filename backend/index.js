@@ -228,6 +228,24 @@ io.on("connection", (socket) => {
     }
   });
 
+  socket.on("leaveGame", () => {
+    const roomId = sess.roomId;
+    if (roomId && games[roomId]) {
+      delete games[roomId].players[socket.id];
+      io.to(roomId).emit("roomUpdate", {
+        players: Object.values(games[roomId].players).map((p) => ({
+          id: p.id,
+          name: p.name,
+          isEliminated: p.isEliminated,
+          isProtected: p.isProtected,
+          ishasDrawnCard: p.ishasDrawnCard,
+        })),
+      });
+      socket.leave(roomId);
+    }
+    delete sessions[sid];
+  });
+
   socket.on("disconnect", () => {
     console.log("A user disconnected:", socket.id);
     // TODO: プレイヤー削除処理

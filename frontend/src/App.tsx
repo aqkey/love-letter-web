@@ -45,6 +45,8 @@ const App: React.FC = () => {
           roomId={roomId}
           playerName={playerName}
           setWinner={setWinner}
+          setRoomId={setRoomId}
+          setPlayerName={setPlayerName}
         />
       )}
       {screen === "result" && (
