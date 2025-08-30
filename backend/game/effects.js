@@ -50,7 +50,7 @@ function checkMinisterElimination(playerId, io) {
       if (!gameEnded) {
         const alive = this.getAlivePlayers();
         if (alive.length === 1) {
-          this.emitToRoom(io, "gameEnded", { winner: alive[0].name });
+          this.endGame(io, alive[0].name);
         }
       }
     }
@@ -78,7 +78,7 @@ function checkPrincessElimination(playerId, discardedCard, io) {
       });
       const alive = this.getAlivePlayers();
       if (alive.length === 1) {
-        this.emitToRoom(io, "gameEnded", { winner: alive[0].name });
+        this.endGame(io, alive[0].name);
       }
     }
     return;
@@ -95,7 +95,7 @@ function checkPrincessElimination(playerId, discardedCard, io) {
     const alive = this.getAlivePlayers();
     if (alive.length <= 1) {
       const winner = alive.length === 1 ? alive[0].name : "引き分け";
-      this.emitToRoom(io, "gameEnded", { winner });
+      this.endGame(io, winner);
     } else {
       this.determineWinnerByHandCost(io);
     }
@@ -113,7 +113,7 @@ function applyDiscardEffectsOnEliminated(playerId, discardedCard, io) {
     const alive = this.getAlivePlayers();
     if (alive.length <= 1) {
       const winner = alive.length === 1 ? alive[0].name : "引き分け";
-      this.emitToRoom(io, "gameEnded", { winner });
+      this.endGame(io, winner);
     } else {
       this.determineWinnerByHandCost(io);
     }
@@ -170,7 +170,7 @@ function handleCountessElimination(io) {
   });
   const alive = this.getAlivePlayers();
   if (alive.length === 1) {
-    this.emitToRoom(io, "gameEnded", { winner: alive[0].name });
+    this.endGame(io, alive[0].name);
   } else {
     this.determineWinnerByHandCost(io);
   }
@@ -189,9 +189,9 @@ function determineWinnerByHandCost(io) {
   const highest = costs[0].cost;
   const topPlayers = costs.filter((c) => c.cost === highest);
   if (topPlayers.length === 1) {
-    this.emitToRoom(io, "gameEnded", { winner: topPlayers[0].name });
+    this.endGame(io, topPlayers[0].name);
   } else {
-    this.emitToRoom(io, "gameEnded", { winner: "引き分け" });
+    this.endGame(io, "引き分け");
   }
 }
 

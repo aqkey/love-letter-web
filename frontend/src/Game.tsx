@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import socket from "./socket";
 
 interface GameProps {
@@ -6,6 +6,10 @@ interface GameProps {
   roomId: string;
   playerName: string;
   setWinner: (name: string) => void;
+  setFinalHands: (hands: { id: string; name: string; hand: Card[]; isEliminated?: boolean }[]) => void;
+  setFinalEventLogs: (logs: string[]) => void;
+  setFinalPlayedCards: (entries: PlayedCardEntry[]) => void;
+  setFinalRemovedCard: (card: Card | null) => void;
 }
 
 interface Card {
@@ -38,6 +42,10 @@ const Game: React.FC<GameProps> = ({
   roomId,
   playerName,
   setWinner,
+  setFinalHands,
+  setFinalEventLogs,
+  setFinalPlayedCards,
+  setFinalRemovedCard,
 }) => {
   const [hand, setHand] = useState<Card[]>([]);
   const [currentPlayer, setCurrentPlayer] = useState<string>("");
@@ -45,6 +53,10 @@ const Game: React.FC<GameProps> = ({
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [deckCount, setDeckCount] = useState<number>(0);
   const [eventLogs, setEventLogs] = useState<string[]>([]);
+  const eventLogsRef = useRef<string[]>([]);
+  useEffect(() => {
+    eventLogsRef.current = eventLogs;
+  }, [eventLogs]);
 
   // プレイヤーリスト（ターゲット選択用）
   const [players, setPlayers] = useState<PlayerInfo[]>([]);
@@ -197,8 +209,14 @@ const Game: React.FC<GameProps> = ({
       setTimeout(() => setErrorMessage(""), 3000);
     });
 
-    socket.on("gameEnded", ({ winner }) => {
+    socket.on("gameEnded", ({ winner, finalHands, playedCards, removedCard }) => {
       setWinner(winner);
+      // 結果画面用に手札とイベントログを保存
+      if (finalHands) setFinalHands(finalHands);
+      if (playedCards) setFinalPlayedCards(playedCards);
+      setFinalRemovedCard(removedCard || null);
+      // これまでの全ログをスナップショットして結果画面に渡す
+      setFinalEventLogs([...eventLogsRef.current, `${winner} さんの勝利です`]);
       setScreen("result");
       setEventLogs((prev) => [...prev, `${winner} さんの勝利です`]);
     });

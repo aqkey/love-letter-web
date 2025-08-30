@@ -13,6 +13,7 @@ class GameManager {
     this.playedCards = [];
     this.gameStarted = false;
     this.gameMasterId = null;
+    this.removedCard = null; // ゲーム開始時に除外したカード
   }
 
   emitToRoom(io, event, data) {
@@ -44,8 +45,8 @@ class GameManager {
 
   startGame() {
     this.createDeck();
-    // 1枚除外
-    this.deck.pop();
+    // 1枚除外（最終表示用に保持）
+    this.removedCard = this.deck.pop();
     // 各プレイヤーに1枚配る
     Object.keys(this.players).forEach(socketId => {
       this.players[socketId].hand = [];
@@ -191,9 +192,7 @@ class GameManager {
                 });
                 const alive = this.getAlivePlayers();
                 if (alive.length === 1) {
-                  this.emitToRoom(io, "gameEnded", {
-                    winner: alive[0].name,
-                  });
+                  this.endGame(io, alive[0].name);
                 }
               }
           } else {
@@ -275,9 +274,7 @@ class GameManager {
 
               const alive = this.getAlivePlayers();
               if (alive.length === 1) {
-                this.emitToRoom(io, "gameEnded", {
-                  winner: alive[0].name,
-                });
+                this.endGame(io, alive[0].name);
               }
           }
         }
@@ -384,7 +381,7 @@ class GameManager {
         const alive = this.getAlivePlayers();
         if (alive.length <= 1) {
           const winner = alive.length === 1 ? alive[0].name : "引き分け";
-          this.emitToRoom(io, "gameEnded", { winner });
+          this.endGame(io, winner);
         } else {
           this.determineWinnerByHandCost(io);
         }
@@ -403,6 +400,21 @@ class GameManager {
     if (this.players[nextPlayerId]) {
       this.players[nextPlayerId].isProtected = false;
     }
+  }
+
+  endGame(io, winner) {
+    const finalHands = Object.values(this.players).map((p) => ({
+      id: p.id,
+      name: p.name,
+      hand: p.hand,
+      isEliminated: p.isEliminated,
+    }));
+    this.emitToRoom(io, "gameEnded", {
+      winner,
+      finalHands,
+      playedCards: this.playedCards,
+      removedCard: this.removedCard,
+    });
   }
 }
 
