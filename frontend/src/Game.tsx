@@ -88,6 +88,21 @@ const Game: React.FC<GameProps> = ({
       console.log(`  ${key}:`, value);
       });
     });
+    socket.emit("requestSync", { roomId });
+    socket.on("syncState", (data) => {
+      if (data.hand) setHand(data.hand);
+      if (data.players)
+        setPlayers(
+          data.players.map((p: any) => ({
+            id: p.id,
+            name: p.name,
+            isEliminated: p.isEliminated ?? false,
+          }))
+        );
+      if (data.currentPlayer) setCurrentPlayer(data.currentPlayer);
+      if (data.deckCount !== undefined) setDeckCount(data.deckCount);
+      if (data.playedCards) setPlayedCards(data.playedCards);
+    });
     socket.on("gameStarted", (data) => {
       setCurrentPlayer(data.currentPlayer);
       if (data.deckCount !== undefined) {
@@ -208,8 +223,9 @@ const Game: React.FC<GameProps> = ({
       socket.off("playerRevived");
       socket.off("gameEnded");
       socket.off("errorMessage");
+      socket.off("syncState");
     };
-  }, []);
+  }, [roomId]);
 
   const handleDraw = () => {
     socket.emit("drawCard", { roomId });

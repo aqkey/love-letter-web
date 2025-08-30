@@ -4,8 +4,8 @@ import Game from "./Game";
 
 const App: React.FC = () => {
   const [screen, setScreen] = useState<"lobby" | "game" | "result">("lobby");
-  const [roomId, setRoomId] = useState<string>("");
-  const [playerName, setPlayerName] = useState<string>("");
+  const [roomId, setRoomId] = useState<string>(() => localStorage.getItem("roomId") || "");
+  const [playerName, setPlayerName] = useState<string>(() => localStorage.getItem("playerName") || "");
   const [winner, setWinner] = useState<string>("");
 
   return (

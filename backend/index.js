@@ -52,26 +52,54 @@ app.post("/test/setup", (req, res) => {
 io.on("connection", (socket) => {
   console.log("A user connected:", socket.id);
 // if room is not exist, create new room. else, enter existing room.
-  socket.on("createRoom", async ({ roomId, name }) => {
+  socket.on("createRoom", async ({ roomId, name, playerId }) => {
     if (!games[roomId]) {
       games[roomId] = new GameManager(roomId);
       console.log("Room created:", roomId);
     }
-    const success = games[roomId].addPlayer(socket.id, name);
-    if (success) {
+    const game = games[roomId];
+
+    // Reconnect if playerId exists
+    if (playerId && game.players[playerId]) {
+      const oldPlayer = game.players[playerId];
+      delete game.players[playerId];
+      const idx = game.turnOrder.indexOf(playerId);
+      if (idx !== -1) {
+        game.turnOrder[idx] = socket.id;
+      }
+      oldPlayer.id = socket.id;
+      game.players[socket.id] = oldPlayer;
       socket.join(roomId);
-      const tmp = socket.id//後で消す
-      const roomSockets = await io.in(roomId).fetchSockets();
-      const userList = roomSockets.map((s) => s.id);
-      console.log(`Room ${roomId} に現在joinしているユーザー一覧:`, userList);
-      console.log(`追加したプレイヤーは:`, games[roomId].players[tmp].id);
+      socket.emit("playerId", socket.id);
+      socket.emit("rejoinSuccess");
       io.to(roomId).emit("roomUpdate", {
-        players: Object.values(games[roomId].players).map((p) => ({
+        players: Object.values(game.players).map((p) => ({
           id: p.id,
           name: p.name,
           isEliminated: p.isEliminated,
           isProtected: p.isProtected,
-          ishasDrawnCard: p.ishasDrawnCard
+          ishasDrawnCard: p.ishasDrawnCard,
+        })),
+      });
+      return;
+    }
+
+    const success = game.addPlayer(socket.id, name);
+    if (success) {
+      socket.join(roomId);
+      const tmp = socket.id; //後で消す
+      const roomSockets = await io.in(roomId).fetchSockets();
+      const userList = roomSockets.map((s) => s.id);
+      console.log(`Room ${roomId} に現在joinしているユーザー一覧:`, userList);
+      console.log(`追加したプレイヤーは:`, game.players[tmp].id);
+      socket.emit("playerId", socket.id);
+      io.to(roomId).emit("roomUpdate", {
+        players: Object.values(game.players).map((p) => ({
+          id: p.id,
+          name: p.name,
+          isEliminated: p.isEliminated,
+          isProtected: p.isProtected,
+          ishasDrawnCard: p.ishasDrawnCard,
         })),
       });
     }
@@ -169,6 +197,25 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {
     console.log("A user disconnected:", socket.id);
     // TODO: プレイヤー削除処理
+  });
+  
+  socket.on("requestSync", ({ roomId }) => {
+    const game = games[roomId];
+    if (!game) return;
+    const player = game.players[socket.id];
+    if (!player) return;
+    const currentPlayerId = game.getCurrentPlayerId();
+    socket.emit("syncState", {
+      hand: player.hand,
+      players: Object.values(game.players).map((p) => ({
+        id: p.id,
+        name: p.name,
+        isEliminated: p.isEliminated,
+      })),
+      currentPlayer: game.players[currentPlayerId].name,
+      deckCount: game.deck.length,
+      playedCards: game.playedCards,
+    });
   });
 });
 

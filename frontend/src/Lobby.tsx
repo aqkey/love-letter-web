@@ -19,7 +19,10 @@ const Lobby: React.FC<LobbyProps> = ({
   const [players, setPlayers] = useState<{ name: string }[]>([]);
 
   const handleCreateRoom = () => {
-    socket.emit("createRoom", { roomId, name: playerName });
+    localStorage.setItem("roomId", roomId);
+    localStorage.setItem("playerName", playerName);
+    const storedId = localStorage.getItem("playerId");
+    socket.emit("createRoom", { roomId, name: playerName, playerId: storedId });
   };
 
   const handleStartGame = () => {
@@ -31,11 +34,19 @@ const Lobby: React.FC<LobbyProps> = ({
     socket.on("roomUpdate", (data) => {
       setPlayers(data.players);
     });
+    socket.on("playerId", (id) => {
+      localStorage.setItem("playerId", id);
+    });
+    socket.on("rejoinSuccess", () => {
+      setScreen("game");
+    });
 
     return () => {
       socket.off("roomUpdate");
+      socket.off("playerId");
+      socket.off("rejoinSuccess");
     };
-  }, []);
+  }, [setScreen]);
 
   return (
     <div className="max-w-md mx-auto bg-white p-4 rounded shadow">
