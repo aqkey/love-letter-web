@@ -2,15 +2,20 @@ const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 const cors = require("cors");
+const path = require("path");
 const GameManager = require("./game/GameManager");
 const { CARD_LIST } = GameManager;
 
 const app = express();
 app.use(express.json());
 const server = http.createServer(app);
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(",")
+  : "*"; // サーバ配置時は同一オリジン想定のため許可を緩める
+
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:3000",
+    origin: allowedOrigins,
     methods: ["GET", "POST"],
   },
 });
@@ -53,13 +58,10 @@ io.on("connection", (socket) => {
   console.log("A user connected:", socket.id);
 // if room is not exist, create new room. else, enter existing room.
   socket.on("createRoom", async ({ roomId, name, playerId }) => {
-    if (games[roomId]) {
-      // Room already exists
-      socket.emit("errorMessage", "すでに存在するroomIDです");
-      return;
+    if (!games[roomId]) {
+      games[roomId] = new GameManager(roomId);
+      console.log("Room created:", roomId);
     }
-    games[roomId] = new GameManager(roomId);
-    console.log("Room created:", roomId);
     const game = games[roomId];
 
     // Reconnect if playerId exists
@@ -299,7 +301,23 @@ function logPlayerHands(game) {
   console.log("=========================================");
 }
 
-const PORT = 4000;
+const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => {
-  console.log(`Server listening on http://localhost:${PORT}`);
+  console.log(`Server listening on port ${PORT}`);
 });
+
+// フロントエンドのビルド成果物を配信（存在する場合）
+const buildPath = path.join(__dirname, "../frontend/build");
+try {
+  const fs = require("fs");
+  if (fs.existsSync(buildPath)) {
+    app.use(express.static(buildPath));
+    // Express v5 では正規表現でのキャッチオールを使用
+    app.get(/.*/, (req, res) => {
+      // E2EやAPI系は先にマッチしている想定。残りはSPAへフォールバック
+      res.sendFile(path.join(buildPath, "index.html"));
+    });
+  }
+} catch (e) {
+  console.warn("Static build serving disabled:", e?.message || e);
+}

@@ -2,7 +2,11 @@
   "name": "love-letter-web",
   "version": "1.0.0",
   "main": "index.js",
-  "scripts": {},
+  "scripts": {
+    "build": "npm --prefix frontend run build",
+    "start": "node backend/index.js",
+    "serve": "npm run build && npm run start"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
