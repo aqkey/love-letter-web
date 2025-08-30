@@ -54,8 +54,8 @@ io.on("connection", (socket) => {
 // if room is not exist, create new room. else, enter existing room.
   socket.on("createRoom", async ({ roomId, name, playerId }) => {
     if (games[roomId]) {
-      // Room already exists, treat as join
-      socket.emit("errorMessage", "Room already exists");
+      // Room already exists
+      socket.emit("errorMessage", "すでに存在するroomIDです");
       return;
     }
     games[roomId] = new GameManager(roomId);

@@ -19,6 +19,7 @@ const Lobby: React.FC<LobbyProps> = ({
   const [players, setPlayers] = useState<{ name: string }[]>([]);
   const [playerId, setPlayerId] = useState<string | null>(null);
   const [gameMasterId, setGameMasterId] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string>("");
 
   const handleCreateRoom = () => {
     localStorage.setItem("roomId", roomId);
@@ -62,18 +63,25 @@ const Lobby: React.FC<LobbyProps> = ({
     socket.on("gameStarted", () => {
       setScreen("game");
     });
+    socket.on("errorMessage", (message) => {
+      setErrorMessage(message);
+    });
 
     return () => {
       socket.off("roomUpdate");
       socket.off("playerId");
       socket.off("rejoinSuccess");
       socket.off("gameStarted");
+      socket.off("errorMessage");
     };
   }, [setScreen]);
 
   return (
     <div className="max-w-md mx-auto bg-white p-4 rounded shadow">
       <h1 className="text-2xl mb-4">💌 Love Letter - ロビー</h1>
+      {errorMessage && (
+        <p className="text-red-500 font-bold mb-2">{errorMessage}</p>
+      )}
       <label className="block mb-2">
         ニックネーム：
         <input
