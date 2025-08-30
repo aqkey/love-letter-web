@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import socket from "./socket";
 
 interface GameProps {
@@ -312,22 +312,39 @@ const Game: React.FC<GameProps> = ({
 
   return (
     <div className="max-w-md mx-auto bg-white p-4 rounded shadow">
-      <p className="font-bold mb-2">あなたの名前：{playerName}</p>
-      <h2 className="text-lg mb-2">ターン：{currentPlayer}</h2>
-      <p className="mb-2">山札残り枚数：{deckCount}</p>
+      {/* セクション1: ルームIDとあなたの名前（ボックス＋一列表示） */}
+      <div className="mb-4 border-4 border-yellow-400 rounded p-3">
+        <div className="flex items-center justify-between gap-4">
+          <div className="text-3xl font-extrabold text-gray-900 break-all px-3 py-1">
+            ルームID：{roomId}
+          </div>
+          <div className="text-2xl font-bold text-gray-700">
+            あなた：{playerName}
+          </div>
+        </div>
+      </div>
 
-      <div className="mb-4">
-        <h3 className="text-md font-bold mb-2">プレイヤー状態</h3>
-        <ul className="list-disc list-inside">
-          {players.map((p) => (
-            <li
-              key={p.id}
-              className={p.isEliminated ? "line-through text-gray-500" : ""}
-            >
-              {p.name} {p.isEliminated ? "(脱落)" : ""}
-            </li>
-          ))}
-        </ul>
+      {/* セクション2: 山札枚数とプレイヤー状態（ボックス＋一列表示） */}
+      <div className="mb-4 border rounded p-3">
+        <div className="flex items-start justify-between gap-4">
+          <div className="shrink-0">
+            <h2 className="text-lg font-bold mb-1">ターン：{currentPlayer}</h2>
+            <p className="mb-0">山札残り枚数：{deckCount}</p>
+          </div>
+          <div className="flex-1">
+            <h3 className="text-md font-bold mb-2">プレイヤー状態</h3>
+            <ul className="list-disc list-inside">
+              {players.map((p) => (
+                <li
+                  key={p.id}
+                  className={p.isEliminated ? "line-through text-gray-500" : ""}
+                >
+                  {p.name} {p.isEliminated ? "(脱落)" : ""}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
       </div>
 
       {errorMessage && (
@@ -528,20 +545,36 @@ const Game: React.FC<GameProps> = ({
         </div>
       )}
 
-      <div className="mt-4">
-        <h3 className="text-md font-bold mb-2">場に出たカード履歴</h3>
-        <ul className="list-disc list-inside">
-          {playedCards.map((entry, index) => (
-            <li key={index} className="flex items-center gap-2">
-              <span>{entry.player} さん:</span>
-              <img
-                src={`/cards/${entry.card.enName}.svg`}
-                alt={entry.card.name}
-                className="w-12 h-auto"
-              />
-            </li>
-          ))}
-        </ul>
+      {/* プレイヤー別の場札一覧（テーブル=緑背景） */}
+      <div className="mt-4 rounded-lg p-3 bg-gradient-to-br from-green-700 to-green-800 text-white shadow-inner">
+        <h3 className="text-md font-bold mb-2">場に出たカード（プレイヤー別）</h3>
+        {(() => {
+          const playedByPlayer = new Map<string, Card[]>();
+          playedCards.forEach((entry) => {
+            const list = playedByPlayer.get(entry.player) || [];
+            list.push(entry.card);
+            playedByPlayer.set(entry.player, list);
+          });
+          return (
+            <ul className="space-y-2">
+              {players.map((p) => (
+                <li key={p.id} className="flex items-center gap-3">
+                  <span className="w-24 shrink-0">{p.name}</span>
+                  <div className="flex flex-wrap gap-2">
+                    {(playedByPlayer.get(p.name) || []).map((card, idx) => (
+                      <img
+                        key={idx}
+                        src={`/cards/${card.enName}.svg`}
+                        alt={card.name}
+                        className="w-10 h-auto rounded ring-1 ring-white/40 shadow"
+                      />
+                    ))}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          );
+        })()}
       </div>
     
       <div className="mt-4">
