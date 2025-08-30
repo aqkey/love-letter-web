@@ -30,6 +30,7 @@ function checkMinisterElimination(playerId, io) {
 
     if (!revived) {
       // 脱落したままなら残りの手札も捨て札へ
+      let gameEnded = false;
       while (player.hand.length) {
         const discarded = player.hand.pop();
         this.playedCards.push({ player: player.name, card: discarded });
@@ -39,11 +40,18 @@ function checkMinisterElimination(playerId, io) {
           card: discarded,
           playedCards: this.playedCards,
         });
+        // 大臣による捨て札でも効果を評価（例: 姫(爆弾)で即時決着）
+        if (this.applyDiscardEffectsOnEliminated(playerId, discarded, io)) {
+          gameEnded = true;
+          break;
+        }
       }
 
-      const alive = this.getAlivePlayers();
-      if (alive.length === 1) {
-        this.emitToRoom(io, "gameEnded", { winner: alive[0].name });
+      if (!gameEnded) {
+        const alive = this.getAlivePlayers();
+        if (alive.length === 1) {
+          this.emitToRoom(io, "gameEnded", { winner: alive[0].name });
+        }
       }
     }
 
@@ -56,7 +64,10 @@ function checkPrincessElimination(playerId, discardedCard, io) {
   const player = this.players[playerId];
   if (!player || player.isEliminated) return;
 
-  if (discardedCard && discardedCard.id === 8) {
+  if (!discardedCard) return;
+
+  // 姫（通常）を捨てた場合は復活（眼鏡）を考慮
+  if (discardedCard.id === 8) {
     player.isEliminated = true;
     console.log(`${player.name} は姫を捨てたため脱落しました。`);
     const revived = this.checkPrincessGlassesRevival(playerId, io);
@@ -70,7 +81,45 @@ function checkPrincessElimination(playerId, discardedCard, io) {
         this.emitToRoom(io, "gameEnded", { winner: alive[0].name });
       }
     }
+    return;
   }
+
+  // 姫（爆弾）を捨てた場合は即脱落し、ゲームを終了判定（復活は不可）
+  if (discardedCard.id === 12) {
+    player.isEliminated = true;
+    console.log(`${player.name} は姫(爆弾)を捨てたため脱落しました。`);
+    this.emitToRoom(io, "playerEliminated", {
+      playerId: playerId,
+      name: player.name,
+    });
+    const alive = this.getAlivePlayers();
+    if (alive.length <= 1) {
+      const winner = alive.length === 1 ? alive[0].name : "引き分け";
+      this.emitToRoom(io, "gameEnded", { winner });
+    } else {
+      this.determineWinnerByHandCost(io);
+    }
+  }
+}
+
+// 大臣の効果などで「脱落状態のプレイヤーの手札を捨てる」際にも
+// 特定カードの捨て札効果（主に姫・爆弾）を反映させるための補助関数。
+// ゲーム終了を発火した場合は true を返す。
+function applyDiscardEffectsOnEliminated(playerId, discardedCard, io) {
+  if (!discardedCard) return false;
+  // 既に脱落しているため、通常の姫(8)は追加効果なし（復活は直前に処理済み）
+  if (discardedCard.id === 12) {
+    // 姫(爆弾)が捨て札になったら即時決着（プレイ時と同等の扱い）
+    const alive = this.getAlivePlayers();
+    if (alive.length <= 1) {
+      const winner = alive.length === 1 ? alive[0].name : "引き分け";
+      this.emitToRoom(io, "gameEnded", { winner });
+    } else {
+      this.determineWinnerByHandCost(io);
+    }
+    return true;
+  }
+  return false;
 }
 
 function checkPrincessGlassesRevival(playerId, io) {
@@ -152,4 +201,5 @@ module.exports = {
   checkPrincessGlassesRevival,
   handleCountessElimination,
   determineWinnerByHandCost,
+  applyDiscardEffectsOnEliminated,
 };
