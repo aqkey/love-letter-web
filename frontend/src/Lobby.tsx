@@ -30,6 +30,14 @@ const Lobby: React.FC<LobbyProps> = ({
     setScreen("game");
   };
 
+  const handleClearSession = () => {
+    localStorage.removeItem("playerId");
+    localStorage.removeItem("roomId");
+    localStorage.removeItem("playerName");
+    setRoomId("");
+    setPlayerName("");
+  };
+
   useEffect(() => {
     socket.on("roomUpdate", (data) => {
       setPlayers(data.players);
@@ -75,6 +83,12 @@ const Lobby: React.FC<LobbyProps> = ({
         className="bg-blue-500 text-white px-4 py-2 rounded w-full mb-2"
       >
         部屋を作る / 入室
+      </button>
+      <button
+        onClick={handleClearSession}
+        className="bg-red-500 text-white px-4 py-2 rounded w-full mb-2"
+      >
+        セッションクリア
       </button>
       {players.length >= 2 ? (
         <button
