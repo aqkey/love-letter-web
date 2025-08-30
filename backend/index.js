@@ -53,10 +53,13 @@ io.on("connection", (socket) => {
   console.log("A user connected:", socket.id);
 // if room is not exist, create new room. else, enter existing room.
   socket.on("createRoom", async ({ roomId, name, playerId }) => {
-    if (!games[roomId]) {
-      games[roomId] = new GameManager(roomId);
-      console.log("Room created:", roomId);
+    if (games[roomId]) {
+      // Room already exists
+      socket.emit("errorMessage", "すでに存在するroomIDです");
+      return;
     }
+    games[roomId] = new GameManager(roomId);
+    console.log("Room created:", roomId);
     const game = games[roomId];
 
     // Reconnect if playerId exists
@@ -86,6 +89,7 @@ io.on("connection", (socket) => {
 
     const success = game.addPlayer(socket.id, name);
     if (success) {
+      game.gameMasterId = socket.id;
       socket.join(roomId);
       const tmp = socket.id; //後で消す
       const roomSockets = await io.in(roomId).fetchSockets();
@@ -101,34 +105,92 @@ io.on("connection", (socket) => {
           isProtected: p.isProtected,
           ishasDrawnCard: p.ishasDrawnCard,
         })),
+        gameMasterId: game.gameMasterId,
+      });
+    }
+  });
+
+  socket.on("joinRoom", async ({ roomId, name, playerId }) => {
+    const game = games[roomId];
+    if (!game) {
+      socket.emit("errorMessage", "Room not found");
+      return;
+    }
+
+    // Reconnect if playerId exists
+    if (playerId && game.players[playerId]) {
+      const oldPlayer = game.players[playerId];
+      delete game.players[playerId];
+      const idx = game.turnOrder.indexOf(playerId);
+      if (idx !== -1) {
+        game.turnOrder[idx] = socket.id;
+      }
+      oldPlayer.id = socket.id;
+      game.players[socket.id] = oldPlayer;
+      if (game.gameMasterId === playerId) {
+        game.gameMasterId = socket.id;
+      }
+      socket.join(roomId);
+      socket.emit("playerId", socket.id);
+      socket.emit("rejoinSuccess");
+      io.to(roomId).emit("roomUpdate", {
+        players: Object.values(game.players).map((p) => ({
+          id: p.id,
+          name: p.name,
+          isEliminated: p.isEliminated,
+          isProtected: p.isProtected,
+          ishasDrawnCard: p.ishasDrawnCard,
+        })),
+        gameMasterId: game.gameMasterId,
+      });
+      return;
+    }
+
+    const success = game.addPlayer(socket.id, name);
+    if (success) {
+      socket.join(roomId);
+      const tmp = socket.id; //後で消す
+      const roomSockets = await io.in(roomId).fetchSockets();
+      const userList = roomSockets.map((s) => s.id);
+      console.log(`Room ${roomId} に現在joinしているユーザー一覧:`, userList);
+      console.log(`追加したプレイヤーは:`, game.players[tmp].id);
+      socket.emit("playerId", socket.id);
+      io.to(roomId).emit("roomUpdate", {
+        players: Object.values(game.players).map((p) => ({
+          id: p.id,
+          name: p.name,
+          isEliminated: p.isEliminated,
+          isProtected: p.isProtected,
+          ishasDrawnCard: p.ishasDrawnCard,
+        })),
+        gameMasterId: game.gameMasterId,
       });
     }
   });
 
   socket.on("startGame", ({ roomId }) => {
     const game = games[roomId];
+    if (!game || socket.id !== game.gameMasterId) return;
     logPlayerHands(game);
-    if (game) {
-      game.startGame();
-      // 各プレイヤーに自分の手札を送信
-      Object.keys(game.players).forEach(playerId => {
+    game.startGame();
+    // 各プレイヤーに自分の手札を送信
+    Object.keys(game.players).forEach(playerId => {
       const player = game.players[playerId];
       io.to(playerId).emit("initialHand", player.hand);
-      });
+    });
 
-      // 全員にゲーム開始通知
-      const currentPlayerId = game.getCurrentPlayerId();
-      io.to(roomId).emit("gameStarted", {
-        players: Object.values(game.players).map((p) => ({
-          id: p.id,
-          name: p.name,
-          handCount: p.hand.length,
-        })),
-        currentPlayer: game.players[currentPlayerId].name,
-        deckCount: game.deck.length,
-      });
-        console.log("Game Start:", game.players[currentPlayerId].name);
-    }
+    // 全員にゲーム開始通知
+    const currentPlayerId = game.getCurrentPlayerId();
+    io.to(roomId).emit("gameStarted", {
+      players: Object.values(game.players).map((p) => ({
+        id: p.id,
+        name: p.name,
+        handCount: p.hand.length,
+      })),
+      currentPlayer: game.players[currentPlayerId].name,
+      deckCount: game.deck.length,
+    });
+    console.log("Game Start:", game.players[currentPlayerId].name);
   });
 
   socket.on("drawCard", ({ roomId }) => {

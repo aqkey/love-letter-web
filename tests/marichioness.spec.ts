@@ -23,18 +23,18 @@ test('player forced to play marchioness when hand cost is 12 or more', async ({ 
   // Player1 creates room
   await page1.getByRole('textbox', { name: 'ニックネーム：' }).fill('alice');
   await page1.getByRole('textbox', { name: 'ルームID：' }).fill(roomName);
-  await page1.getByRole('button', { name: '部屋を作る / 入室' }).click();
+  await page1.getByRole('button', { name: '部屋を作る' }).click();
   await sleep(1000);
 
   // Player2 joins room
   await page2.getByRole('textbox', { name: 'ニックネーム：' }).fill('bob');
   await page2.getByRole('textbox', { name: 'ルームID：' }).fill(roomName);
-  await page2.getByRole('button', { name: '部屋を作る / 入室' }).click();
+  await page2.getByRole('button', { name: '入室' }).click();
   await sleep(1000);
 
   // Start game
   await page1.getByRole('button', { name: 'ゲーム開始' }).click();
-  await page2.getByRole('button', { name: 'ゲーム開始' }).click();
+  await sleep(1000);
 
   const players = await playersPromise;
   const aliceId = players.find(p => p.name === 'alice').id;
@@ -96,18 +96,18 @@ test('player discard  when hand is  marchioness & minister', async ({ browser })
   // Player1 creates room
   await page1.getByRole('textbox', { name: 'ニックネーム：' }).fill('alice');
   await page1.getByRole('textbox', { name: 'ルームID：' }).fill(roomName);
-  await page1.getByRole('button', { name: '部屋を作る / 入室' }).click();
+  await page1.getByRole('button', { name: '部屋を作る' }).click();
   await sleep(1000);
 
   // Player2 joins room
   await page2.getByRole('textbox', { name: 'ニックネーム：' }).fill('bob');
   await page2.getByRole('textbox', { name: 'ルームID：' }).fill(roomName);
-  await page2.getByRole('button', { name: '部屋を作る / 入室' }).click();
+  await page2.getByRole('button', { name: '入室' }).click();
   await sleep(1000);
 
   // Start game
   await page1.getByRole('button', { name: 'ゲーム開始' }).click();
-  await page2.getByRole('button', { name: 'ゲーム開始' }).click();
+  await sleep(1000);
 
   const players = await playersPromise;
   const aliceId = players.find(p => p.name === 'alice').id;

@@ -17,12 +17,22 @@ const Lobby: React.FC<LobbyProps> = ({
   setPlayerName,
 }) => {
   const [players, setPlayers] = useState<{ name: string }[]>([]);
+  const [playerId, setPlayerId] = useState<string | null>(null);
+  const [gameMasterId, setGameMasterId] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string>("");
 
   const handleCreateRoom = () => {
     localStorage.setItem("roomId", roomId);
     localStorage.setItem("playerName", playerName);
     const storedId = localStorage.getItem("playerId");
     socket.emit("createRoom", { roomId, name: playerName, playerId: storedId });
+  };
+
+  const handleJoinRoom = () => {
+    localStorage.setItem("roomId", roomId);
+    localStorage.setItem("playerName", playerName);
+    const storedId = localStorage.getItem("playerId");
+    socket.emit("joinRoom", { roomId, name: playerName, playerId: storedId });
   };
 
   const handleStartGame = () => {
@@ -41,24 +51,37 @@ const Lobby: React.FC<LobbyProps> = ({
   useEffect(() => {
     socket.on("roomUpdate", (data) => {
       setPlayers(data.players);
+      setGameMasterId(data.gameMasterId);
     });
     socket.on("playerId", (id) => {
       localStorage.setItem("playerId", id);
+      setPlayerId(id);
     });
     socket.on("rejoinSuccess", () => {
       setScreen("game");
+    });
+    socket.on("gameStarted", () => {
+      setScreen("game");
+    });
+    socket.on("errorMessage", (message) => {
+      setErrorMessage(message);
     });
 
     return () => {
       socket.off("roomUpdate");
       socket.off("playerId");
       socket.off("rejoinSuccess");
+      socket.off("gameStarted");
+      socket.off("errorMessage");
     };
   }, [setScreen]);
 
   return (
     <div className="max-w-md mx-auto bg-white p-4 rounded shadow">
       <h1 className="text-2xl mb-4">💌 Love Letter - ロビー</h1>
+      {errorMessage && (
+        <p className="text-red-500 font-bold mb-2">{errorMessage}</p>
+      )}
       <label className="block mb-2">
         ニックネーム：
         <input
@@ -82,7 +105,14 @@ const Lobby: React.FC<LobbyProps> = ({
         disabled={!playerName || !roomId}
         className="bg-blue-500 text-white px-4 py-2 rounded w-full mb-2"
       >
-        部屋を作る / 入室
+        部屋を作る
+      </button>
+      <button
+        onClick={handleJoinRoom}
+        disabled={!playerName || !roomId}
+        className="bg-blue-500 text-white px-4 py-2 rounded w-full mb-2"
+      >
+        入室
       </button>
       <button
         onClick={handleClearSession}
@@ -90,7 +120,7 @@ const Lobby: React.FC<LobbyProps> = ({
       >
         セッションクリア
       </button>
-      {players.length >= 2 ? (
+      {players.length >= 2 && playerId === gameMasterId ? (
         <button
           onClick={handleStartGame}
           className="bg-green-500 text-white px-4 py-2 rounded w-full"
