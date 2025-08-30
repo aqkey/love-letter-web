@@ -7,10 +7,22 @@ const { CARD_LIST } = GameManager;
 
 const app = express();
 app.use(express.json());
+
+// Determine the allowed CORS origin from environment or default to localhost
+const allowedOrigin = process.env.CLIENT_ORIGIN || "http://localhost:3000";
+
+// Enable CORS for Express routes so that requests from remote frontends work
+app.use(
+  cors({
+    origin: allowedOrigin,
+    methods: ["GET", "POST"],
+  })
+);
+
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:3000",
+    origin: allowedOrigin,
     methods: ["GET", "POST"],
   },
 });
@@ -299,7 +311,8 @@ function logPlayerHands(game) {
   console.log("=========================================");
 }
 
-const PORT = 4000;
+// Use the PORT environment variable if provided (e.g., in cloud deployments)
+const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => {
-  console.log(`Server listening on http://localhost:${PORT}`);
+  console.log(`Server listening on port ${PORT}`);
 });
