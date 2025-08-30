@@ -19,7 +19,10 @@ const Lobby: React.FC<LobbyProps> = ({
   const [players, setPlayers] = useState<{ name: string }[]>([]);
 
   const handleCreateRoom = () => {
-    socket.emit("createRoom", { roomId, name: playerName });
+    localStorage.setItem("roomId", roomId);
+    localStorage.setItem("playerName", playerName);
+    const storedId = localStorage.getItem("playerId");
+    socket.emit("createRoom", { roomId, name: playerName, playerId: storedId });
   };
 
   const handleStartGame = () => {
@@ -27,15 +30,31 @@ const Lobby: React.FC<LobbyProps> = ({
     setScreen("game");
   };
 
+  const handleClearSession = () => {
+    localStorage.removeItem("playerId");
+    localStorage.removeItem("roomId");
+    localStorage.removeItem("playerName");
+    setRoomId("");
+    setPlayerName("");
+  };
+
   useEffect(() => {
     socket.on("roomUpdate", (data) => {
       setPlayers(data.players);
     });
+    socket.on("playerId", (id) => {
+      localStorage.setItem("playerId", id);
+    });
+    socket.on("rejoinSuccess", () => {
+      setScreen("game");
+    });
 
     return () => {
       socket.off("roomUpdate");
+      socket.off("playerId");
+      socket.off("rejoinSuccess");
     };
-  }, []);
+  }, [setScreen]);
 
   return (
     <div className="max-w-md mx-auto bg-white p-4 rounded shadow">
@@ -64,6 +83,12 @@ const Lobby: React.FC<LobbyProps> = ({
         className="bg-blue-500 text-white px-4 py-2 rounded w-full mb-2"
       >
         部屋を作る / 入室
+      </button>
+      <button
+        onClick={handleClearSession}
+        className="bg-red-500 text-white px-4 py-2 rounded w-full mb-2"
+      >
+        セッションクリア
       </button>
       {players.length >= 2 ? (
         <button
