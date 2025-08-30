@@ -12,6 +12,7 @@ class GameManager {
     this.currentTurn = 0;
     this.playedCards = [];
     this.gameStarted = false;
+    this.gameMasterId = null;
   }
 
   emitToRoom(io, event, data) {
