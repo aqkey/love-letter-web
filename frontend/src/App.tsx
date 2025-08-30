@@ -8,6 +8,15 @@ const App: React.FC = () => {
   const [playerName, setPlayerName] = useState<string>(() => localStorage.getItem("playerName") || "");
   const [winner, setWinner] = useState<string>("");
 
+  const handleReturnToLobby = () => {
+    localStorage.removeItem("playerId");
+    localStorage.removeItem("roomId");
+    localStorage.removeItem("playerName");
+    setRoomId("");
+    setPlayerName("");
+    setScreen("lobby");
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center">
       {screen === "lobby" && (
@@ -35,7 +44,7 @@ const App: React.FC = () => {
             <h1 className="text-2xl mb-4">勝者: {winner} さん！</h1>
           )}
           <button
-            onClick={() => setScreen("lobby")}
+            onClick={handleReturnToLobby}
             className="bg-blue-500 text-white px-4 py-2 rounded w-full"
           >
             ロビーに戻る
