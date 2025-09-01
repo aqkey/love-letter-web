@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import socket from "./socket";
 
 interface LobbyProps {
-  setScreen: (screen: "lobby" | "game" | "result") => void;
+  setScreen: (screen: "lobby" | "game" | "result" | "howto") => void;
   roomId: string;
   setRoomId: (roomId: string) => void;
   playerName: string;
@@ -119,6 +119,12 @@ const Lobby: React.FC<LobbyProps> = ({
         className="bg-red-500 text-white px-4 py-2 rounded w-full mb-2"
       >
         セッションクリア
+      </button>
+      <button
+        onClick={() => setScreen("howto")}
+        className="bg-purple-500 text-white px-4 py-2 rounded w-full mb-2"
+      >
+        ルール説明
       </button>
       {players.length >= 2 && playerId === gameMasterId ? (
         <button

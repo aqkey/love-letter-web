@@ -1,13 +1,14 @@
 import React, { useState } from "react";
 import Lobby from "./Lobby";
 import Game from "./Game";
+import HowTo from "./HowTo";
 
 type CardDto = { id: number; name: string; enName: string; cost: number };
 type FinalHandEntry = { id: string; name: string; hand: CardDto[]; isEliminated?: boolean };
 type PlayedCardEntry = { player: string; card: CardDto };
 
 const App: React.FC = () => {
-  const [screen, setScreen] = useState<"lobby" | "game" | "result">("lobby");
+  const [screen, setScreen] = useState<"lobby" | "game" | "result" | "howto">("lobby");
   const [roomId, setRoomId] = useState<string>(() => localStorage.getItem("roomId") || "");
   const [playerName, setPlayerName] = useState<string>(() => localStorage.getItem("playerName") || "");
   const [winner, setWinner] = useState<string>("");
@@ -47,6 +48,9 @@ const App: React.FC = () => {
           setFinalPlayedCards={setFinalPlayedCards}
           setFinalRemovedCard={setFinalRemovedCard}
         />
+      )}
+      {screen === "howto" && (
+        <HowTo setScreen={setScreen} />
       )}
       {screen === "result" && (
         <div className="max-w-4xl mx-auto bg-white p-4 rounded shadow space-y-4 w-full">
