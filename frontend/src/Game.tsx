@@ -209,6 +209,27 @@ const Game: React.FC<GameProps> = ({
       setTimeout(() => setErrorMessage(""), 3000);
     });
 
+    // 兵士の宣言結果（誰に何を宣言し、当たり/外れ）
+    socket.on("soldierPlayed", (data: any) => {
+      const { playerName, targetName, guessCardName, hit, protected: isProtected } = data || {};
+      const msg = isProtected
+        ? `${playerName} さんが 兵士 で ${targetName} さんの ${guessCardName} を宣言 → 僧侶で保護中`
+        : hit
+        ? `${playerName} さんが 兵士 で ${targetName} さんの ${guessCardName} を宣言 → 的中！`
+        : `${playerName} さんが 兵士 で ${targetName} さんの ${guessCardName} を宣言 → ハズレ`;
+      setEventLogs((prev) => [...prev, msg]);
+    });
+
+    // 僧侶保護により効果が無効化されたときの共通ログ
+    socket.on("protectedByMonk", (data: any) => {
+      const { targetName } = data || {};
+      if (!targetName) return;
+      setEventLogs((prev) => [
+        ...prev,
+        `${targetName} は僧侶の効果で守られました`,
+      ]);
+    });
+
     socket.on("gameEnded", ({ winner, finalHands, playedCards, removedCard }) => {
       setWinner(winner);
       // 結果画面用に手札とイベントログを保存
@@ -242,6 +263,8 @@ const Game: React.FC<GameProps> = ({
       socket.off("gameEnded");
       socket.off("errorMessage");
       socket.off("syncState");
+      socket.off("soldierPlayed");
+      socket.off("protectedByMonk");
     };
   }, [roomId]);
 

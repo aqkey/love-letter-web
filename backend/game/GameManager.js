@@ -169,6 +169,25 @@ class GameManager {
           this.players[targetPlayerId].isProtected
         ) {
           console.log(`${this.players[targetPlayerId].name} は僧侶の効果で守られています。`);
+          // 宣言情報を通知（保護により無効）
+          try {
+            const guessInfo = CARD_LIST.find((c) => c.id === guessCardId);
+            this.emitToRoom(io, "soldierPlayed", {
+              playerId,
+              playerName: this.players[playerId]?.name,
+              targetPlayerId,
+              targetName: this.players[targetPlayerId]?.name,
+              guessCardId,
+              guessCardName: guessInfo ? guessInfo.name : "不明",
+              hit: false,
+              protected: true,
+            });
+            // 僧侶保護の明示ログ
+            this.emitToRoom(io, "protectedByMonk", {
+              targetPlayerId,
+              targetName: this.players[targetPlayerId]?.name,
+            });
+          } catch (_) {}
           break;
         }
         if (
@@ -179,7 +198,8 @@ class GameManager {
           !this.players[targetPlayerId].isProtected
         ) {
           const targetHand = this.players[targetPlayerId].hand[0];
-          if (targetHand.id === guessCardId) {
+          const hit = targetHand.id === guessCardId;
+          if (hit) {
               this.players[targetPlayerId].isEliminated = true;
               console.log(
                 `${this.players[targetPlayerId].name} は脱落しました！（兵士の効果）`
@@ -198,6 +218,21 @@ class GameManager {
           } else {
             console.log(`${this.players[targetPlayerId].name} はセーフでした。`);
           }
+          try {
+            const guessInfo = CARD_LIST.find((c) => c.id === guessCardId);
+            this.emitToRoom(io, "soldierPlayed", {
+              playerId,
+              playerName: this.players[playerId]?.name,
+              targetPlayerId,
+              targetName: this.players[targetPlayerId]?.name,
+              guessCardId,
+              guessCardName: guessInfo ? guessInfo.name : "不明",
+              hit,
+              protected: false,
+              actualCardId: hit ? targetHand.id : undefined,
+              actualCardName: hit ? targetHand.name : undefined,
+            });
+          } catch (_) {}
         }
         break;
       case 2: // 道化（clown）
@@ -207,6 +242,11 @@ class GameManager {
           this.players[targetPlayerId].isProtected
         ) {
           console.log(`${this.players[targetPlayerId].name} は僧侶の効果で守られています。`);
+          // 僧侶保護の明示ログ
+          this.emitToRoom(io, "protectedByMonk", {
+            targetPlayerId,
+            targetName: this.players[targetPlayerId]?.name,
+          });
           break;
         }
         if (
@@ -235,6 +275,11 @@ class GameManager {
           this.players[targetPlayerId].isProtected
         ) {
           console.log(`${this.players[targetPlayerId].name} は僧侶の効果で守られています。`);
+          // 僧侶保護の明示ログ
+          this.emitToRoom(io, "protectedByMonk", {
+            targetPlayerId,
+            targetName: this.players[targetPlayerId]?.name,
+          });
           break;
         }
         if (
@@ -291,6 +336,11 @@ class GameManager {
             this.players[targetId].isProtected
           ) {
             console.log(`${this.players[targetId].name} は僧侶の効果で守られています。`);
+            // 僧侶保護の明示ログ
+            this.emitToRoom(io, "protectedByMonk", {
+              targetPlayerId: targetId,
+              targetName: this.players[targetId]?.name,
+            });
             break;
           }
           if (
@@ -333,6 +383,11 @@ class GameManager {
           this.players[targetPlayerId].isProtected
         ) {
           console.log(`${this.players[targetPlayerId].name} は僧侶の効果で守られています。`);
+          // 僧侶保護の明示ログ
+          this.emitToRoom(io, "protectedByMonk", {
+            targetPlayerId,
+            targetName: this.players[targetPlayerId]?.name,
+          });
           break;
         }
         if (
