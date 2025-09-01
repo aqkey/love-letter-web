@@ -198,7 +198,13 @@ class GameManager {
           !this.players[targetPlayerId].isProtected
         ) {
           const targetHand = this.players[targetPlayerId].hand[0];
-          const hit = targetHand.id === guessCardId;
+          // 兵士の宣言において、姫(8)/姫(眼鏡)(9)/姫(爆弾)(12)は同一グループとして扱う
+          const isPrincessFamily = (id) => id === 8 || id === 9 || id === 12;
+          const sameAsGuess = (guessId, actualId) => {
+            if (isPrincessFamily(guessId) && isPrincessFamily(actualId)) return true;
+            return guessId === actualId;
+          };
+          const hit = sameAsGuess(guessCardId, targetHand.id);
           if (hit) {
               this.players[targetPlayerId].isEliminated = true;
               console.log(

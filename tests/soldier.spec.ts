@@ -152,3 +152,113 @@ test('three players soldier declaration logs and eliminates target', async ({ br
   await context2.close();
   await context3.close();
 });
+
+// Soldier princess-family grouping: guessing Princess(Glasses) hits when target holds Princess
+test('soldier guess princess_glasses hits target holding princess', async ({ browser }) => {
+  const context1: BrowserContext = await browser.newContext();
+  const page1: Page = await context1.newPage();
+  const context2: BrowserContext = await browser.newContext();
+  const page2: Page = await context2.newPage();
+
+  await page1.goto('http://localhost:3000');
+  await page2.goto('http://localhost:3000');
+
+  const roomName = Math.random().toString(36).substring(2);
+  const playersPromise = waitForPlayersFromConsole(page1);
+
+  await page1.getByRole('textbox', { name: 'ニックネーム：' }).fill('alice');
+  await page1.getByRole('textbox', { name: 'ルームID：' }).fill(roomName);
+  await page1.getByRole('button', { name: '部屋を作る' }).click();
+  await sleep(800);
+
+  await page2.getByRole('textbox', { name: 'ニックネーム：' }).fill('bob');
+  await page2.getByRole('textbox', { name: 'ルームID：' }).fill(roomName);
+  await page2.getByRole('button', { name: '入室' }).click();
+  await sleep(800);
+
+  await page1.getByRole('button', { name: 'ゲーム開始' }).click();
+  await sleep(800);
+
+  const players = await playersPromise;
+  const aliceId = players.find(p => p.name === 'alice').id;
+  const bobId = players.find(p => p.name === 'bob').id;
+
+  await page1.request.post('http://localhost:4000/test/setup', {
+    data: {
+      roomId: roomName,
+      deck: [1, 3, 2, 1], // alice draws Soldier
+      hands: {
+        [aliceId]: [2], // clown
+        [bobId]: [8],   // princess
+      },
+    },
+  });
+
+  await page1.getByRole('button', { name: 'カードを引く' }).click();
+  await page1.getByRole('button', { name: '兵士' }).click();
+  await page1.getByLabel('bob').check();
+  await page1.getByLabel('姫(眼鏡)').check();
+  await sleep(300);
+  await page1.getByRole('button', { name: '決定' }).click();
+
+  // Hit should be recognized and bob eliminated (game ends)
+  await expect(page1.getByText('勝者: alice さん！')).toBeVisible();
+
+  await context1.close();
+  await context2.close();
+});
+
+// Soldier princess-family grouping: guessing Princess(Bomb) hits when target holds Princess
+test('soldier guess princess_bomb hits target holding princess', async ({ browser }) => {
+  const context1: BrowserContext = await browser.newContext();
+  const page1: Page = await context1.newPage();
+  const context2: BrowserContext = await browser.newContext();
+  const page2: Page = await context2.newPage();
+
+  await page1.goto('http://localhost:3000');
+  await page2.goto('http://localhost:3000');
+
+  const roomName = Math.random().toString(36).substring(2);
+  const playersPromise = waitForPlayersFromConsole(page1);
+
+  await page1.getByRole('textbox', { name: 'ニックネーム：' }).fill('alice');
+  await page1.getByRole('textbox', { name: 'ルームID：' }).fill(roomName);
+  await page1.getByRole('button', { name: '部屋を作る' }).click();
+  await sleep(800);
+
+  await page2.getByRole('textbox', { name: 'ニックネーム：' }).fill('bob');
+  await page2.getByRole('textbox', { name: 'ルームID：' }).fill(roomName);
+  await page2.getByRole('button', { name: '入室' }).click();
+  await sleep(800);
+
+  await page1.getByRole('button', { name: 'ゲーム開始' }).click();
+  await sleep(800);
+
+  const players = await playersPromise;
+  const aliceId = players.find(p => p.name === 'alice').id;
+  const bobId = players.find(p => p.name === 'bob').id;
+
+  await page1.request.post('http://localhost:4000/test/setup', {
+    data: {
+      roomId: roomName,
+      deck: [1, 3, 2, 1], // alice draws Soldier
+      hands: {
+        [aliceId]: [2], // clown
+        [bobId]: [8],   // princess
+      },
+    },
+  });
+
+  await page1.getByRole('button', { name: 'カードを引く' }).click();
+  await page1.getByRole('button', { name: '兵士' }).click();
+  await page1.getByLabel('bob').check();
+  await page1.getByLabel('姫(爆弾)').check();
+  await sleep(300);
+  await page1.getByRole('button', { name: '決定' }).click();
+
+  // Hit should be recognized and bob eliminated (game ends)
+  await expect(page1.getByText('勝者: alice さん！')).toBeVisible();
+
+  await context1.close();
+  await context2.close();
+});
