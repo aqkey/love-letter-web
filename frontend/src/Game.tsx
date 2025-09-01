@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { HowToContent } from "./HowTo";
 import socket from "./socket";
 
 interface GameProps {
@@ -91,6 +92,8 @@ const Game: React.FC<GameProps> = ({
   // 手札を見るモーダル
   const [showSeeHandModal, setShowSeeHandModal] = useState(false);
   const [seeHandInfo, setSeeHandInfo] = useState<{ targetName: string; card: Card } | null>(null);
+  // ルール説明モーダル
+  const [showHowToModal, setShowHowToModal] = useState(false);
 
   useEffect(() => {
     console.log("【playersの中身一覧】");
@@ -385,6 +388,14 @@ const Game: React.FC<GameProps> = ({
               ))}
             </ul>
           </div>
+          <div className="shrink-0">
+            <button
+              onClick={() => setShowHowToModal(true)}
+              className="bg-purple-500 text-white px-3 py-2 rounded"
+            >
+              ルール説明
+            </button>
+          </div>
         </div>
       </div>
 
@@ -582,6 +593,25 @@ const Game: React.FC<GameProps> = ({
             >
               OK
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ルール説明モーダル（ゲーム中表示用） */}
+      {showHowToModal && (
+        <div className="fixed z-30 left-0 top-0 w-full h-full bg-black bg-opacity-40 flex items-center justify-center">
+          <div className="bg-white max-w-3xl w-11/12 max-h-[80vh] overflow-y-auto p-4 rounded shadow">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-lg font-bold">ルール説明</h3>
+              <button
+                onClick={() => setShowHowToModal(false)}
+                className="text-gray-600 hover:text-gray-900"
+              >
+                閉じる
+              </button>
+            </div>
+            {/* 説明コンテンツ */}
+            <HowToContent />
           </div>
         </div>
       )}
