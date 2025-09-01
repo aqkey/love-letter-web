@@ -182,6 +182,11 @@ class GameManager {
               hit: false,
               protected: true,
             });
+            // 僧侶保護の明示ログ
+            this.emitToRoom(io, "protectedByMonk", {
+              targetPlayerId,
+              targetName: this.players[targetPlayerId]?.name,
+            });
           } catch (_) {}
           break;
         }
@@ -237,6 +242,11 @@ class GameManager {
           this.players[targetPlayerId].isProtected
         ) {
           console.log(`${this.players[targetPlayerId].name} は僧侶の効果で守られています。`);
+          // 僧侶保護の明示ログ
+          this.emitToRoom(io, "protectedByMonk", {
+            targetPlayerId,
+            targetName: this.players[targetPlayerId]?.name,
+          });
           break;
         }
         if (
@@ -265,6 +275,11 @@ class GameManager {
           this.players[targetPlayerId].isProtected
         ) {
           console.log(`${this.players[targetPlayerId].name} は僧侶の効果で守られています。`);
+          // 僧侶保護の明示ログ
+          this.emitToRoom(io, "protectedByMonk", {
+            targetPlayerId,
+            targetName: this.players[targetPlayerId]?.name,
+          });
           break;
         }
         if (
@@ -321,6 +336,11 @@ class GameManager {
             this.players[targetId].isProtected
           ) {
             console.log(`${this.players[targetId].name} は僧侶の効果で守られています。`);
+            // 僧侶保護の明示ログ
+            this.emitToRoom(io, "protectedByMonk", {
+              targetPlayerId: targetId,
+              targetName: this.players[targetId]?.name,
+            });
             break;
           }
           if (
@@ -363,6 +383,11 @@ class GameManager {
           this.players[targetPlayerId].isProtected
         ) {
           console.log(`${this.players[targetPlayerId].name} は僧侶の効果で守られています。`);
+          // 僧侶保護の明示ログ
+          this.emitToRoom(io, "protectedByMonk", {
+            targetPlayerId,
+            targetName: this.players[targetPlayerId]?.name,
+          });
           break;
         }
         if (

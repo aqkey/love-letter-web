@@ -220,6 +220,16 @@ const Game: React.FC<GameProps> = ({
       setEventLogs((prev) => [...prev, msg]);
     });
 
+    // 僧侶保護により効果が無効化されたときの共通ログ
+    socket.on("protectedByMonk", (data: any) => {
+      const { targetName } = data || {};
+      if (!targetName) return;
+      setEventLogs((prev) => [
+        ...prev,
+        `${targetName} は僧侶の効果で守られました`,
+      ]);
+    });
+
     socket.on("gameEnded", ({ winner, finalHands, playedCards, removedCard }) => {
       setWinner(winner);
       // 結果画面用に手札とイベントログを保存
@@ -254,6 +264,7 @@ const Game: React.FC<GameProps> = ({
       socket.off("errorMessage");
       socket.off("syncState");
       socket.off("soldierPlayed");
+      socket.off("protectedByMonk");
     };
   }, [roomId]);
 
