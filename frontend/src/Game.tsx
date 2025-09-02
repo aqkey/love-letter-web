@@ -354,72 +354,111 @@ const Game: React.FC<GameProps> = ({
   );
   const alivePlayers = players.filter((p) => !p.isEliminated);
 
+  const selfPlayer = players.find((p) => p.name === playerName);
+  const isSelfEliminated = Boolean(selfPlayer?.isEliminated);
+
   return (
-    <div className="max-w-md mx-auto bg-white p-4 rounded shadow">
+    <div className="max-w-md mx-auto bg-amber-50/95 p-4 rounded-lg shadow-xl ring-1 ring-yellow-800/30">
       {/* セクション1: ルームIDとあなたの名前（ボックス＋一列表示） */}
-      <div className="mb-4 border-4 border-yellow-400 rounded p-3">
+      <div className="mb-4 border-2 border-yellow-700/40 bg-amber-100/60 rounded p-3">
         <div className="flex items-center justify-between gap-4">
-          <div className="text-3xl font-extrabold text-gray-900 break-all px-3 py-1">
-            ルームID：{roomId}
+          <div className="text-md font-bold text-gray-900 break-all px-3 py-1">
+            roomID：{roomId}
           </div>
-          <div className="text-2xl font-bold text-gray-700">
-            あなた：{playerName}
+          <div className="text-md font-bold text-gray-700">
+            PlayerName：{playerName}
           </div>
         </div>
+      </div>
+      {/* ルール説明（小さなボタン） */}
+      <div className="mb-2 -mt-2">
+        <button
+          onClick={() => setShowHowToModal(true)}
+          className="text-xs text-purple-700 underline"
+        >
+          ルール説明
+        </button>
       </div>
 
-      {/* セクション2: 山札枚数とプレイヤー状態（ボックス＋一列表示） */}
-      <div className="mb-4 border rounded p-3">
-        <div className="flex items-start justify-between gap-4">
-          <div className="shrink-0">
-            <h2 className="text-lg font-bold mb-1">ターン：{currentPlayer}</h2>
-            <p className="mb-0">山札残り枚数：{deckCount}</p>
-          </div>
-          <div className="flex-1">
-            <h3 className="text-md font-bold mb-2">プレイヤー状態</h3>
-            <ul className="list-disc list-inside">
-              {players.map((p) => (
-                <li
-                  key={p.id}
-                  className={p.isEliminated ? "line-through text-gray-500" : ""}
-                >
-                  {p.name} {p.isEliminated ? "(脱落)" : ""}
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div className="shrink-0">
-            <button
-              onClick={() => setShowHowToModal(true)}
-              className="bg-purple-500 text-white px-3 py-2 rounded"
-            >
-              ルール説明
-            </button>
-          </div>
-        </div>
-      </div>
+      {/* セクション2: （削除）ターン/山札残りの表示は場札セクションに統合 */}
 
       {errorMessage && (
         <p className="text-red-500 font-bold mb-2">{errorMessage}</p>
       )}
 
 
-      {playerName === currentPlayer ? (
-        <button
-          onClick={handleDraw}
-          disabled={hand.length >= 2}
-          className="bg-blue-500 text-white px-4 py-2 rounded mb-2 w-full"
-        >
-          カードを引く
-        </button>
-      ) : (
+      {playerName !== currentPlayer && (
         <p className="mb-4">相手のターンです。お待ちください...</p>
       )}
 
-      {/* 手札表示 */}
-      <div className="grid grid-cols-2 gap-2 mb-4">
+      {/* プレイヤー別の場札一覧（プレイ順で上から並べる） */}
+      <div className="mt-4 rounded-lg p-3 bg-gradient-to-br from-stone-800 to-slate-900 text-amber-100 shadow-inner">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-md font-bold">場に出たカード（プレイヤー別・プレイ順）</h3>
+          <span className="text-sm opacity-90">山札残り枚数：{deckCount}</span>
+        </div>
+        {(() => {
+          // プレイヤーごとの場札（各プレイヤー内の順はプレイ順）
+          const playedByPlayer = new Map<string, Card[]>();
+          playedCards.forEach((entry) => {
+            const list = playedByPlayer.get(entry.player) || [];
+            list.push(entry.card);
+            playedByPlayer.set(entry.player, list);
+          });
+          const lastPlayed = playedCards.length ? playedCards[playedCards.length - 1] : null;
+          // プレイ順にプレイヤー名を並べる（初登場順）。未プレイの人は後ろに追加
+          const orderFromPlays: string[] = [];
+          playedCards.forEach((entry) => {
+            if (!orderFromPlays.includes(entry.player)) orderFromPlays.push(entry.player);
+          });
+          const allNames = players.map((p) => p.name);
+          const remaining = allNames.filter((n) => !orderFromPlays.includes(n));
+          const orderedNames = [...orderFromPlays, ...remaining];
+
+          return (
+            <ul className="space-y-2">
+              {orderedNames.map((name) => {
+                const p = players.find((pp) => pp.name === name);
+                const isElim = Boolean(p?.isEliminated);
+                const isCurrent = name === currentPlayer;
+                const rowClass = `${isElim ? "opacity-50 grayscale" : ""} ${isCurrent ? "scale-[1.02]" : ""}`;
+                const nameClass = `${isElim ? "text-gray-300" : ""} ${isCurrent ? "text-xl font-extrabold" : ""}`;
+                return (
+                  <li key={name} className={`flex items-center gap-3 ${rowClass}`}>
+                    <span className={`w-4 text-center ${isCurrent ? 'text-yellow-300' : 'text-transparent'}`}>▶︎</span>
+                    <span className={`w-24 shrink-0 ${nameClass}`}>
+                      {name} {isElim ? "(脱落)" : ""}
+                    </span>
+                    <div className="flex flex-wrap gap-2">
+                      {(() => {
+                        const list = playedByPlayer.get(name) || [];
+                        return list.map((card, idx) => {
+                          const isLast = !!lastPlayed && name === lastPlayed.player && idx === list.length - 1;
+                          const ringClass = isLast ? 'ring-2 ring-white' : 'ring-1 ring-yellow-200/40';
+                          return (
+                            <img
+                              key={idx}
+                              src={`/cards/${card.enName}.svg`}
+                              alt={card.name}
+                              className={`w-10 h-auto rounded ${ringClass} shadow`}
+                            />
+                          );
+                        });
+                      })()}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          );
+        })()}
+      </div>
+
+      {/* 自分の手札 */}
+      <h3 className="text-md font-bold mt-4 mb-2 text-center">自分の手札</h3>
+      <div className={`grid grid-cols-2 gap-2 mb-4 justify-items-center ${isSelfEliminated ? 'opacity-50 grayscale' : ''}`}>
         {hand.map((card, index) => {
-          const disabled = playerName !== currentPlayer || hand.length < 2;
+          const disabled = isSelfEliminated || playerName !== currentPlayer || hand.length < 2;
           return (
             <button
               key={index}
@@ -438,6 +477,15 @@ const Game: React.FC<GameProps> = ({
           );
         })}
       </div>
+      {playerName === currentPlayer && (
+        <button
+          onClick={handleDraw}
+          disabled={hand.length >= 2}
+          className="bg-amber-700 hover:bg-amber-800 text-white px-4 py-2 rounded w-full"
+        >
+          カードを引く
+        </button>
+      )}
 
       {/* ターゲット選択モーダル（道化・騎士用） */}
       {showTargetModal && (
@@ -615,52 +663,10 @@ const Game: React.FC<GameProps> = ({
           </div>
         </div>
       )}
-
-      {/* プレイヤー別の場札一覧（プレイ順で上から並べる） */}
-      <div className="mt-4 rounded-lg p-3 bg-gradient-to-br from-green-700 to-green-800 text-white shadow-inner">
-        <h3 className="text-md font-bold mb-2">場に出たカード（プレイヤー別・プレイ順）</h3>
-        {(() => {
-          // プレイヤーごとの場札（各プレイヤー内の順はプレイ順）
-          const playedByPlayer = new Map<string, Card[]>();
-          playedCards.forEach((entry) => {
-            const list = playedByPlayer.get(entry.player) || [];
-            list.push(entry.card);
-            playedByPlayer.set(entry.player, list);
-          });
-          // プレイ順にプレイヤー名を並べる（初登場順）。未プレイの人は後ろに追加
-          const orderFromPlays: string[] = [];
-          playedCards.forEach((entry) => {
-            if (!orderFromPlays.includes(entry.player)) orderFromPlays.push(entry.player);
-          });
-          const allNames = players.map((p) => p.name);
-          const remaining = allNames.filter((n) => !orderFromPlays.includes(n));
-          const orderedNames = [...orderFromPlays, ...remaining];
-
-          return (
-            <ul className="space-y-2">
-              {orderedNames.map((name) => (
-                <li key={name} className="flex items-center gap-3">
-                  <span className="w-24 shrink-0">{name}</span>
-                  <div className="flex flex-wrap gap-2">
-                    {(playedByPlayer.get(name) || []).map((card, idx) => (
-                      <img
-                        key={idx}
-                        src={`/cards/${card.enName}.svg`}
-                        alt={card.name}
-                        className="w-10 h-auto rounded ring-1 ring-white/40 shadow"
-                      />
-                    ))}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          );
-        })()}
-      </div>
     
-      <div className="mt-4">
+      <div className="mt-4 text-center">
         <h3 className="text-md font-bold mb-2">イベントログ</h3>
-        <div className="border rounded p-2 h-32 overflow-y-auto bg-gray-50">
+        <div className="border rounded p-2 h-32 overflow-y-auto bg-amber-50 mx-auto max-w-md text-left">
           {eventLogs.map((log, index) => (
             <p key={index} className="text-sm">
               {log}
