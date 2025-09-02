@@ -38,7 +38,7 @@ export const HowToContent: React.FC = () => {
       </div>
 
       <div className="space-y-3">
-        <h2 className="text-xl font-semibold">カード一覧（コスト順・イラスト付き）</h2>
+        <h2 className="text-xl font-semibold">カード一覧</h2>
         <ul className="space-y-2">
           {cards.map((c) => (
             <li key={c.id} className="flex items-center gap-3">

@@ -616,23 +616,33 @@ const Game: React.FC<GameProps> = ({
         </div>
       )}
 
-      {/* プレイヤー別の場札一覧（テーブル=緑背景） */}
+      {/* プレイヤー別の場札一覧（プレイ順で上から並べる） */}
       <div className="mt-4 rounded-lg p-3 bg-gradient-to-br from-green-700 to-green-800 text-white shadow-inner">
-        <h3 className="text-md font-bold mb-2">場に出たカード（プレイヤー別）</h3>
+        <h3 className="text-md font-bold mb-2">場に出たカード（プレイヤー別・プレイ順）</h3>
         {(() => {
+          // プレイヤーごとの場札（各プレイヤー内の順はプレイ順）
           const playedByPlayer = new Map<string, Card[]>();
           playedCards.forEach((entry) => {
             const list = playedByPlayer.get(entry.player) || [];
             list.push(entry.card);
             playedByPlayer.set(entry.player, list);
           });
+          // プレイ順にプレイヤー名を並べる（初登場順）。未プレイの人は後ろに追加
+          const orderFromPlays: string[] = [];
+          playedCards.forEach((entry) => {
+            if (!orderFromPlays.includes(entry.player)) orderFromPlays.push(entry.player);
+          });
+          const allNames = players.map((p) => p.name);
+          const remaining = allNames.filter((n) => !orderFromPlays.includes(n));
+          const orderedNames = [...orderFromPlays, ...remaining];
+
           return (
             <ul className="space-y-2">
-              {players.map((p) => (
-                <li key={p.id} className="flex items-center gap-3">
-                  <span className="w-24 shrink-0">{p.name}</span>
+              {orderedNames.map((name) => (
+                <li key={name} className="flex items-center gap-3">
+                  <span className="w-24 shrink-0">{name}</span>
                   <div className="flex flex-wrap gap-2">
-                    {(playedByPlayer.get(p.name) || []).map((card, idx) => (
+                    {(playedByPlayer.get(name) || []).map((card, idx) => (
                       <img
                         key={idx}
                         src={`/cards/${card.enName}.svg`}

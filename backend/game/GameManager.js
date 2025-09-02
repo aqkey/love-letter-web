@@ -43,7 +43,25 @@ class GameManager {
     return true;
   }
 
-  startGame() {
+  startGame(options = {}) {
+    const { orderMode, firstPlayerId } = options || {};
+    // ターン順の設定
+    if (orderMode === 'random') {
+      // 完全ランダム
+      for (let i = this.turnOrder.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [this.turnOrder[i], this.turnOrder[j]] = [this.turnOrder[j], this.turnOrder[i]];
+      }
+    } else if (orderMode === 'choose_first' && firstPlayerId && this.turnOrder.includes(firstPlayerId)) {
+      const others = this.turnOrder.filter(id => id !== firstPlayerId);
+      // 残りはランダム
+      for (let i = others.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [others[i], others[j]] = [others[j], others[i]];
+      }
+      this.turnOrder = [firstPlayerId, ...others];
+    }
+
     this.createDeck();
     // 1枚除外（最終表示用に保持）
     this.removedCard = this.deck.pop();
