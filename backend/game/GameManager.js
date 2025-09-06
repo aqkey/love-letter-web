@@ -228,12 +228,13 @@ class GameManager {
               console.log(
                 `${this.players[targetPlayerId].name} は脱落しました！（兵士の効果）`
               );
-              const revived = this.checkPrincessGlassesRevival(targetPlayerId, io);
-              if (!revived) {
-                this.emitToRoom(io, "playerEliminated", {
-                  playerId: targetPlayerId,
-                  name: this.players[targetPlayerId].name,
-                });
+              this.emitToRoom(io, "playerEliminated", {
+                playerId: targetPlayerId,
+                name: this.players[targetPlayerId].name,
+              });
+              // 残り手札を公開（捨て札へ）
+              const ended = this.discardRemainingHandOnElimination(targetPlayerId, io);
+              if (!ended) {
                 const alive = this.getAlivePlayers();
                 if (alive.length === 1) {
                   this.endGame(io, alive[0].name);
@@ -322,23 +323,19 @@ class GameManager {
             } else if (myCost < targetCost) {
               player.isEliminated = true;
               console.log(`${player.name} は脱落しました！（騎士の効果）`);
-              const revived = this.checkPrincessGlassesRevival(playerId, io);
-              if (!revived) {
-                this.emitToRoom(io, "playerEliminated", {
-                  playerId: playerId,
-                  name: player.name,
-                });
-              }
+              this.emitToRoom(io, "playerEliminated", {
+                playerId: playerId,
+                name: player.name,
+              });
+              this.discardRemainingHandOnElimination(playerId, io);
             } else {
               this.players[targetPlayerId].isEliminated = true;
               console.log(`${this.players[targetPlayerId].name} は脱落しました！（騎士の効果）`);
-              const revived = this.checkPrincessGlassesRevival(targetPlayerId, io);
-              if (!revived) {
-                this.emitToRoom(io, "playerEliminated", {
-                  playerId: targetPlayerId,
-                  name: this.players[targetPlayerId].name,
-                });
-              }
+              this.emitToRoom(io, "playerEliminated", {
+                playerId: targetPlayerId,
+                name: this.players[targetPlayerId].name,
+              });
+              this.discardRemainingHandOnElimination(targetPlayerId, io);
             }
 
               const alive = this.getAlivePlayers();
@@ -457,6 +454,8 @@ class GameManager {
           playerId: playerId,
           name: player.name,
         });
+        // 脱落したプレイヤーの残り手札を公開
+        this.discardRemainingHandOnElimination(playerId, io);
         const alive = this.getAlivePlayers();
         if (alive.length <= 1) {
           const winner = alive.length === 1 ? alive[0].name : "引き分け";

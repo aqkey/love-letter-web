@@ -26,32 +26,28 @@ function checkMinisterElimination(playerId, io) {
       playedCards: this.playedCards,
     });
 
-    const revived = this.checkPrincessGlassesRevival(playerId, io);
-
-    if (!revived) {
-      // 脱落したままなら残りの手札も捨て札へ
-      let gameEnded = false;
-      while (player.hand.length) {
-        const discarded = player.hand.pop();
-        this.playedCards.push({ player: player.name, card: discarded });
-        this.emitToRoom(io, "cardPlayed", {
-          playerId: playerId,
-          player: player.name,
-          card: discarded,
-          playedCards: this.playedCards,
-        });
-        // 大臣による捨て札でも効果を評価（例: 姫(爆弾)で即時決着）
-        if (this.applyDiscardEffectsOnEliminated(playerId, discarded, io)) {
-          gameEnded = true;
-          break;
-        }
+    // 脱落したままなら残りの手札も捨て札へ
+    let gameEnded = false;
+    while (player.hand.length) {
+      const discarded = player.hand.pop();
+      this.playedCards.push({ player: player.name, card: discarded });
+      this.emitToRoom(io, "cardPlayed", {
+        playerId: playerId,
+        player: player.name,
+        card: discarded,
+        playedCards: this.playedCards,
+      });
+      // 大臣による捨て札でも効果を評価（例: 姫(爆弾)で即時決着）
+      if (this.applyDiscardEffectsOnEliminated(playerId, discarded, io)) {
+        gameEnded = true;
+        break;
       }
+    }
 
-      if (!gameEnded) {
-        const alive = this.getAlivePlayers();
-        if (alive.length === 1) {
-          this.endGame(io, alive[0].name);
-        }
+    if (!gameEnded) {
+      const alive = this.getAlivePlayers();
+      if (alive.length === 1) {
+        this.endGame(io, alive[0].name);
       }
     }
 
@@ -66,20 +62,20 @@ function checkPrincessElimination(playerId, discardedCard, io) {
 
   if (!discardedCard) return;
 
-  // 姫（通常）を捨てた場合は復活（眼鏡）を考慮
+  // 姫（通常）を捨てた場合は脱落（復活ドローなし）
   if (discardedCard.id === 8) {
     player.isEliminated = true;
     console.log(`${player.name} は姫を捨てたため脱落しました。`);
-    const revived = this.checkPrincessGlassesRevival(playerId, io);
-    if (!revived) {
-      this.emitToRoom(io, "playerEliminated", {
-        playerId: playerId,
-        name: player.name,
-      });
-      const alive = this.getAlivePlayers();
-      if (alive.length === 1) {
-        this.endGame(io, alive[0].name);
-      }
+    this.emitToRoom(io, "playerEliminated", {
+      playerId: playerId,
+      name: player.name,
+    });
+    // 残り手札を公開（捨て札へ）
+    const ended = this.discardRemainingHandOnElimination(playerId, io);
+    if (ended) return;
+    const alive = this.getAlivePlayers();
+    if (alive.length === 1) {
+      this.endGame(io, alive[0].name);
     }
     return;
   }
@@ -122,6 +118,29 @@ function applyDiscardEffectsOnEliminated(playerId, discardedCard, io) {
   return false;
 }
 
+// 脱落が確定したプレイヤーの残り手札を公開（捨て札へ移動）する
+// 途中で姫(爆弾)などによりゲームが決着した場合は true を返す
+function discardRemainingHandOnElimination(playerId, io) {
+  const player = this.players[playerId];
+  if (!player) return false;
+  let ended = false;
+  while (player.hand.length) {
+    const discarded = player.hand.pop();
+    this.playedCards.push({ player: player.name, card: discarded });
+    this.emitToRoom(io, "cardPlayed", {
+      playerId,
+      player: player.name,
+      card: discarded,
+      playedCards: this.playedCards,
+    });
+    if (this.applyDiscardEffectsOnEliminated(playerId, discarded, io)) {
+      ended = true;
+      break;
+    }
+  }
+  return ended;
+}
+
 function checkPrincessGlassesRevival(playerId, io) {
   const player = this.players[playerId];
   if (!player || !player.isEliminated) return false;
@@ -162,10 +181,9 @@ function handleCountessElimination(io) {
     if (!p.isEliminated && p.hand.some((c) => c.id === 10)) {
       p.isEliminated = true;
       console.log(`${p.name} は伯爵夫人を持ったまま山札が尽きたため脱落しました。`);
-      const revived = this.checkPrincessGlassesRevival(pid, io);
-      if (!revived) {
-        this.emitToRoom(io, "playerEliminated", { playerId: pid, name: p.name });
-      }
+      this.emitToRoom(io, "playerEliminated", { playerId: pid, name: p.name });
+      // 手札公開
+      this.discardRemainingHandOnElimination(pid, io);
     }
   });
   const alive = this.getAlivePlayers();
@@ -202,4 +220,5 @@ module.exports = {
   handleCountessElimination,
   determineWinnerByHandCost,
   applyDiscardEffectsOnEliminated,
+  discardRemainingHandOnElimination,
 };
