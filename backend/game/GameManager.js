@@ -44,7 +44,7 @@ class GameManager {
   }
 
   startGame(options = {}) {
-    const { orderMode, firstPlayerId } = options || {};
+    const { orderMode, firstPlayerId, turnOrder } = options || {};
     // ターン順の設定
     if (orderMode === 'random') {
       // 完全ランダム
@@ -60,6 +60,13 @@ class GameManager {
         [others[i], others[j]] = [others[j], others[i]];
       }
       this.turnOrder = [firstPlayerId, ...others];
+    } else if (orderMode === 'manual' && Array.isArray(turnOrder) && turnOrder.length) {
+      // 手動順序（存在確認と重複排除）
+      const valid = turnOrder.filter((id) => this.turnOrder.includes(id));
+      const unique = Array.from(new Set(valid));
+      if (unique.length === this.turnOrder.length) {
+        this.turnOrder = unique;
+      }
     }
 
     this.createDeck();
