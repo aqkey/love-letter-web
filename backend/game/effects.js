@@ -26,6 +26,11 @@ function checkMinisterElimination(playerId, io) {
       playedCards: this.playedCards,
     });
 
+    // 姫(眼鏡)所持ならここで即復活（残り手札の公開は行わない）
+    if (this.checkPrincessGlassesRevival(playerId, io)) {
+      return true;
+    }
+
     // 脱落したままなら残りの手札も捨て札へ
     let gameEnded = false;
     while (player.hand.length) {
@@ -70,6 +75,12 @@ function checkPrincessElimination(playerId, discardedCard, io) {
       playerId: playerId,
       name: player.name,
     });
+    // 姫(眼鏡)を所持している場合はここで即時復活処理を試みる
+    // 復活が成功した場合は残り手札の公開やゲーム終了判定を行わない
+    const revived = this.checkPrincessGlassesRevival(playerId, io);
+    if (revived) {
+      return;
+    }
     // 残り手札を公開（捨て札へ）
     const ended = this.discardRemainingHandOnElimination(playerId, io);
     if (ended) return;
