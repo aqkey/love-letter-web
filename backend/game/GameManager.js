@@ -239,12 +239,16 @@ class GameManager {
                 playerId: targetPlayerId,
                 name: this.players[targetPlayerId].name,
               });
-              // 残り手札を公開（捨て札へ）
-              const ended = this.discardRemainingHandOnElimination(targetPlayerId, io);
-              if (!ended) {
-                const alive = this.getAlivePlayers();
-                if (alive.length === 1) {
-                  this.endGame(io, alive[0].name);
+              // 姫(眼鏡)があれば即時復活を試みる
+              const revived = this.checkPrincessGlassesRevival(targetPlayerId, io);
+              if (!revived) {
+                // 残り手札を公開（捨て札へ）
+                const ended = this.discardRemainingHandOnElimination(targetPlayerId, io);
+                if (!ended) {
+                  const alive = this.getAlivePlayers();
+                  if (alive.length === 1) {
+                    this.endGame(io, alive[0].name);
+                  }
                 }
               }
           } else {
@@ -334,7 +338,11 @@ class GameManager {
                 playerId: playerId,
                 name: player.name,
               });
-              this.discardRemainingHandOnElimination(playerId, io);
+              // 姫(眼鏡)があれば即時復活を試みる
+              const revivedSelf = this.checkPrincessGlassesRevival(playerId, io);
+              if (!revivedSelf) {
+                this.discardRemainingHandOnElimination(playerId, io);
+              }
             } else {
               this.players[targetPlayerId].isEliminated = true;
               console.log(`${this.players[targetPlayerId].name} は脱落しました！（騎士の効果）`);
@@ -342,7 +350,11 @@ class GameManager {
                 playerId: targetPlayerId,
                 name: this.players[targetPlayerId].name,
               });
-              this.discardRemainingHandOnElimination(targetPlayerId, io);
+              // 姫(眼鏡)があれば即時復活を試みる
+              const revivedTarget = this.checkPrincessGlassesRevival(targetPlayerId, io);
+              if (!revivedTarget) {
+                this.discardRemainingHandOnElimination(targetPlayerId, io);
+              }
             }
 
               const alive = this.getAlivePlayers();
@@ -392,7 +404,9 @@ class GameManager {
                 });
                 this.checkPrincessElimination(targetId, discarded, io);
               }
-              if (this.deck.length) {
+              // 姫の捨て札で脱落した場合、姫(眼鏡)で復活している可能性がある
+              // 復活していない（依然として脱落状態）の場合のみ、魔術師の置き直しドローを行う
+              if (this.deck.length && this.players[targetId].isEliminated) {
                 const newCard = this.deck.pop();
                 this.players[targetId].hand = [newCard];
                 this.emitToPlayer(io, targetId, "replaceCard", newCard);
