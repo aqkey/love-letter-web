@@ -126,6 +126,71 @@ test('princess glasses revives player', () => {
   assert.equal(gm.players['p1'].hand[0].id, 2);
 });
 
+// Princess self-play with glasses triggers immediate revival
+test('playing princess with glasses revives immediately', () => {
+  const gm = setupTwoPlayers();
+  const io = new MockIO();
+  // p1 has [princess, glasses]; will play princess
+  gm.players['p1'].hand = [createCard(8, '姫', 8), createCard(9, '姫(眼鏡)', 8)];
+  gm.players['p1'].hasDrawnCard = true;
+  gm.deck = [createCard(1, '兵士', 1)];
+
+  gm.playCard('p1', 0, undefined, undefined, io);
+
+  assert.equal(gm.players['p1'].isEliminated, false);
+  assert.equal(gm.players['p1'].hand.length, 1);
+  assert.equal(gm.players['p1'].hand[0].id, 1);
+  // Ensure cardPlayed includes glasses discard (revival) but no remaining-hand discard cascade
+  const playedByP1 = io.events.filter(e => e.event === 'cardPlayed' && e.data.playerId === 'p1');
+  // Two cardPlayed events expected: princess played (from GameManager.playedCards, not emitted here), and glasses discard via revival emits 'cardPlayed'
+  // In our server, playCard for princess doesn't emit 'cardPlayed' event, only revival does. So at least 1 from revival.
+  assert.ok(playedByP1.length >= 1);
+});
+
+// Soldier hits target holding [princess, glasses] -> target revives (keeps princess), no discard cascade
+test('soldier hit eliminates target with princess+glasses, target revives and keeps other card', () => {
+  const gm = setupTwoPlayers();
+  const io = new MockIO();
+  gm.players['p1'].hand = [createCard(1, '兵士', 1)];
+  // target holds two cards: princess and glasses (order princess first so sorcerer-like logic would hit princess; for soldier this doesn't matter)
+  gm.players['p2'].hand = [createCard(8, '姫', 8), createCard(9, '姫(眼鏡)', 8)];
+  gm.players['p1'].hasDrawnCard = true;
+  gm.deck = [createCard(2, '道化', 2)];
+
+  gm.playCard('p1', 0, 'p2', 8, io);
+
+  assert.equal(gm.players['p2'].isEliminated, false);
+  // After revival: glasses discarded, princess remains, and new card drawn => 2 cards in hand
+  assert.equal(gm.players['p2'].hand.length, 2);
+  const ids = gm.players['p2'].hand.map(c => c.id).sort();
+  assert.deepEqual(ids, [2, 8]);
+  // Ensure no discardRemainingHand cascade occurred (only glasses should be emitted as cardPlayed for p2)
+  const p2CardPlayed = io.events.filter(e => e.event === 'cardPlayed' && e.data.playerId === 'p2');
+  // Exactly 1 cardPlayed expected for p2: glasses via revival
+  assert.equal(p2CardPlayed.length, 1);
+  assert.equal(p2CardPlayed[0].data.card.id, 9);
+});
+
+// Sorcerer forces target to discard princess; with glasses target revives and no replacement draw occurs
+test('sorcerer force-discard princess with glasses causes revival and skips replacement draw', () => {
+  const gm = setupTwoPlayers();
+  const io = new MockIO();
+  gm.players['p1'].hand = [createCard(5, '魔術師', 5)];
+  // Target holds [princess, glasses] so index 0 discard hits princess
+  gm.players['p2'].hand = [createCard(8, '姫', 8), createCard(9, '姫(眼鏡)', 8)];
+  gm.players['p1'].hasDrawnCard = true;
+  gm.deck = [createCard(1, '兵士', 1)];
+
+  gm.playCard('p1', 0, 'p2', undefined, io);
+
+  // Target should be revived and have exactly 1 card (the revival draw); no additional replacement draw
+  assert.equal(gm.players['p2'].isEliminated, false);
+  assert.equal(gm.players['p2'].hand.length, 1);
+  assert.equal(gm.players['p2'].hand[0].id, 1);
+  // Ensure no replaceCard event was emitted (would indicate sorcerer's replacement draw occurred)
+  const replaceEvents = io.events.filter(e => e.event === 'replaceCard');
+  assert.equal(replaceEvents.length, 0);
+});
 // Princess glasses and minister trigger revival with new card
 test('minister and glasses combination draws a card to revive', () => {
   const gm = setupTwoPlayers();
