@@ -170,11 +170,11 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("startGame", ({ roomId, orderMode, firstPlayerId }) => {
+  socket.on("startGame", ({ roomId, orderMode, firstPlayerId, turnOrder }) => {
     const game = games[roomId];
     if (!game || socket.id !== game.gameMasterId) return;
     logPlayerHands(game);
-    game.startGame({ orderMode, firstPlayerId });
+    game.startGame({ orderMode, firstPlayerId, turnOrder });
     // 各プレイヤーに自分の手札を送信
     Object.keys(game.players).forEach(playerId => {
       const player = game.players[playerId];

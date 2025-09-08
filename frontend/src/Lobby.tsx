@@ -21,8 +21,9 @@ const Lobby: React.FC<LobbyProps> = ({
   const [gameMasterId, setGameMasterId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [showOrderModal, setShowOrderModal] = useState(false);
-  const [orderMode, setOrderMode] = useState<'random' | 'choose_first'>('random');
+  const [orderMode, setOrderMode] = useState<'random' | 'choose_first' | 'manual'>('random');
   const [firstPlayerId, setFirstPlayerId] = useState<string>("");
+  const [manualOrder, setManualOrder] = useState<string[]>([]);
 
   const handleCreateRoom = () => {
     localStorage.setItem("roomId", roomId);
@@ -40,6 +41,8 @@ const Lobby: React.FC<LobbyProps> = ({
 
   const handleStartGame = () => {
     // モーダルで順番設定
+    // 手動順序の初期値を現在のプレイヤー順に
+    setManualOrder((players as any[]).map(p => p.id));
     setShowOrderModal(true);
   };
 
@@ -47,6 +50,9 @@ const Lobby: React.FC<LobbyProps> = ({
     const payload: any = { roomId, orderMode };
     if (orderMode === 'choose_first' && firstPlayerId) {
       payload.firstPlayerId = firstPlayerId;
+    }
+    if (orderMode === 'manual') {
+      payload.turnOrder = manualOrder;
     }
     socket.emit("startGame", payload);
     setShowOrderModal(false);
@@ -182,6 +188,15 @@ const Lobby: React.FC<LobbyProps> = ({
                 />
                 先頭のプレイヤーを選択（2番目以降はランダム）
               </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="orderMode"
+                  checked={orderMode === 'manual'}
+                  onChange={() => setOrderMode('manual')}
+                />
+                完全マニュアル（全員の順番を指定）
+              </label>
             </div>
             {orderMode === 'choose_first' && (
               <div className="mb-3">
@@ -198,6 +213,30 @@ const Lobby: React.FC<LobbyProps> = ({
                 </select>
               </div>
             )}
+            {orderMode === 'manual' && (
+              <div className="mb-3 space-y-2">
+                {(players as any[]).map((_, idx) => (
+                  <div key={idx} className="flex items-center gap-2">
+                    <span className="w-20 shrink-0">{idx + 1}番手</span>
+                    <select
+                      className="border rounded w-full p-2"
+                      value={manualOrder[idx] || ''}
+                      onChange={(e) => {
+                        const next = [...manualOrder];
+                        next[idx] = e.target.value;
+                        setManualOrder(next);
+                      }}
+                    >
+                      <option value="">選択してください</option>
+                      {(players as any[]).map((p) => (
+                        <option key={p.id} value={p.id}>{p.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                ))}
+                <p className="text-xs text-gray-500">同じプレイヤーを重複選択しないようにしてください。</p>
+              </div>
+            )}
             <div className="flex justify-end gap-2">
               <button
                 onClick={() => setShowOrderModal(false)}
@@ -208,7 +247,7 @@ const Lobby: React.FC<LobbyProps> = ({
               <button
                 onClick={handleConfirmStart}
                 className="bg-green-600 text-white px-4 py-2 rounded disabled:opacity-50"
-                disabled={orderMode === 'choose_first' && !firstPlayerId}
+                disabled={(orderMode === 'choose_first' && !firstPlayerId) || (orderMode === 'manual' && (!manualOrder.length || new Set(manualOrder).size !== (players as any[]).length || manualOrder.some(v => !v)))}
               >
                 開始
               </button>
