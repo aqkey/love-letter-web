@@ -45,6 +45,10 @@ class GameManager {
 
   startGame(options = {}) {
     const { orderMode, firstPlayerId, turnOrder } = options || {};
+    // 前回ゲームの進行状況をリセット
+    this.playedCards = [];
+    this.currentTurn = 0;
+    this.removedCard = null;
     // ターン順の設定
     if (orderMode === 'random') {
       // 完全ランダム

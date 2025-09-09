@@ -7,6 +7,9 @@ interface LobbyProps {
   setRoomId: (roomId: string) => void;
   playerName: string;
   setPlayerName: (name: string) => void;
+  // リザルトからの「もう一度遊ぶ」で遷移してきた場合に開始モーダルを自動表示する
+  autoOpenStartModal?: boolean;
+  onAutoStartHandled?: () => void;
 }
 
 const Lobby: React.FC<LobbyProps> = ({
@@ -15,9 +18,11 @@ const Lobby: React.FC<LobbyProps> = ({
   setRoomId,
   playerName,
   setPlayerName,
+  autoOpenStartModal = false,
+  onAutoStartHandled,
 }) => {
   const [players, setPlayers] = useState<{ name: string }[]>([]);
-  const [playerId, setPlayerId] = useState<string | null>(null);
+  const [playerId, setPlayerId] = useState<string | null>(() => localStorage.getItem("playerId"));
   const [gameMasterId, setGameMasterId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [showOrderModal, setShowOrderModal] = useState(false);
@@ -76,12 +81,17 @@ const Lobby: React.FC<LobbyProps> = ({
       localStorage.setItem("playerId", id);
       setPlayerId(id);
     });
+    socket.on("syncState", (data: any) => {
+      if (data?.players) setPlayers(data.players);
+      if (data?.gameMasterId) setGameMasterId(data.gameMasterId);
+    });
     socket.on("rejoinSuccess", () => {
       setScreen("game");
     });
-    socket.on("gameStarted", () => {
+    const onLobbyGameStarted = () => {
       setScreen("game");
-    });
+    };
+    socket.on("gameStarted", onLobbyGameStarted);
     socket.on("errorMessage", (message) => {
       setErrorMessage(message);
     });
@@ -89,11 +99,30 @@ const Lobby: React.FC<LobbyProps> = ({
     return () => {
       socket.off("roomUpdate");
       socket.off("playerId");
+      socket.off("syncState");
       socket.off("rejoinSuccess");
-      socket.off("gameStarted");
+      socket.off("gameStarted", onLobbyGameStarted);
       socket.off("errorMessage");
     };
   }, [setScreen]);
+
+  // リザルトから戻ってきたときに、自動で「ゲーム開始」モーダルを開く
+  useEffect(() => {
+    if (!autoOpenStartModal) return;
+    // プレイヤー情報と自分がゲームマスターであることが分かってから実行
+    if (players.length >= 2 && playerId && gameMasterId && playerId === gameMasterId) {
+      setManualOrder((players as any[]).map(p => p.id));
+      setShowOrderModal(true);
+      onAutoStartHandled && onAutoStartHandled();
+    }
+  }, [autoOpenStartModal, players, playerId, gameMasterId, onAutoStartHandled]);
+
+  // ロビー表示直後に現在の部屋状態を問い合わせる（再戦で戻ってきたときのため）
+  useEffect(() => {
+    if (roomId) {
+      socket.emit("requestSync", { roomId });
+    }
+  }, [roomId]);
 
   return (
     <div className="max-w-md mx-auto bg-white p-4 rounded shadow">
