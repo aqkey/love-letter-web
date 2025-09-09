@@ -126,7 +126,10 @@ const Lobby: React.FC<LobbyProps> = ({
 
   return (
     <div className="max-w-md mx-auto bg-white p-4 rounded shadow">
-      <h1 className="text-2xl mb-4">💌 Love Letter - ロビー</h1>
+      <div className="w-full flex items-center justify-center mb-3">
+        <img src="/logo512.png" alt="Love Letter" className="h-16 w-16" />
+      </div>
+      <h1 className="text-2xl mb-4 text-center">ロビー</h1>
       {errorMessage && (
         <p className="text-red-500 font-bold mb-2">{errorMessage}</p>
       )}
