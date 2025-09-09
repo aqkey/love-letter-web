@@ -37,6 +37,8 @@ interface CardPlayedData {
   player: string;
   card: Card;
   playedCards: PlayedCardEntry[];
+  targetPlayerId?: string | null;
+  targetName?: string | null;
 }
 
 const Game: React.FC<GameProps> = ({
@@ -185,10 +187,19 @@ const Game: React.FC<GameProps> = ({
     socket.on("cardPlayed", (data: CardPlayedData) => {
       if (!data || !data.card) return;
       setPlayedCards(data.playedCards);
-      setEventLogs((prev) => [
-        ...prev,
-        `${data.player} さんが ${data.card.name} を出しました`,
-      ]);
+      // 対象付きログ（道化=2, 騎士=3, 魔術師=5, 将軍=6）
+      if ([2, 3, 5, 6].includes(data.card.id) && data.targetName) {
+        const name = data.card.name; // 表示名をそのまま使用
+        setEventLogs((prev) => [
+          ...prev,
+          `${data.player} が ${name} を ${data.targetName} に使いました`,
+        ]);
+      } else {
+        setEventLogs((prev) => [
+          ...prev,
+          `${data.player} さんが ${data.card.name} を出しました`,
+        ]);
+      }
       if (data.playerId === socket.id) {
         setHand((prev) =>
           prev.filter((_, i) => i !== prev.findIndex((c) => c.id === data.card.id && c.name === data.card.name))
