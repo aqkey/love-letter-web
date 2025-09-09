@@ -195,6 +195,31 @@ io.on("connection", (socket) => {
     console.log("Game Start:", game.players[currentPlayerId].name);
   });
 
+  // ゲームマスター専用: もう一度遊ぶ（即時再開用：同じメンバー、順番は指定モードに従う）
+  socket.on("restartGame", ({ roomId, orderMode = 'random', firstPlayerId, turnOrder }) => {
+    const game = games[roomId];
+    if (!game || socket.id !== game.gameMasterId) return;
+    logPlayerHands(game);
+    game.startGame({ orderMode, firstPlayerId, turnOrder });
+    // 各プレイヤーに自分の手札を送信
+    Object.keys(game.players).forEach(playerId => {
+      const player = game.players[playerId];
+      io.to(playerId).emit("initialHand", player.hand);
+    });
+    // 全員にゲーム開始通知
+    const currentPlayerId = game.getCurrentPlayerId();
+    io.to(roomId).emit("gameStarted", {
+      players: Object.values(game.players).map((p) => ({
+        id: p.id,
+        name: p.name,
+        handCount: p.hand.length,
+      })),
+      currentPlayer: game.players[currentPlayerId].name,
+      deckCount: game.deck.length,
+    });
+    console.log("Game Restart:", game.players[currentPlayerId].name);
+  });
+
   socket.on("drawCard", ({ roomId }) => {
     const game = games[roomId];
     
@@ -279,6 +304,7 @@ io.on("connection", (socket) => {
       currentPlayer: game.players[currentPlayerId].name,
       deckCount: game.deck.length,
       playedCards: game.playedCards,
+      gameMasterId: game.gameMasterId,
     });
   });
 });

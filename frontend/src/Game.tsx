@@ -11,6 +11,7 @@ interface GameProps {
   setFinalEventLogs: (logs: string[]) => void;
   setFinalPlayedCards: (entries: PlayedCardEntry[]) => void;
   setFinalRemovedCard: (card: Card | null) => void;
+  setGameMasterId: (id: string | null) => void;
 }
 
 interface Card {
@@ -47,6 +48,7 @@ const Game: React.FC<GameProps> = ({
   setFinalEventLogs,
   setFinalPlayedCards,
   setFinalRemovedCard,
+  setGameMasterId,
 }) => {
   const [hand, setHand] = useState<Card[]>([]);
   const [currentPlayer, setCurrentPlayer] = useState<string>("");
@@ -117,8 +119,9 @@ const Game: React.FC<GameProps> = ({
       if (data.currentPlayer) setCurrentPlayer(data.currentPlayer);
       if (data.deckCount !== undefined) setDeckCount(data.deckCount);
       if (data.playedCards) setPlayedCards(data.playedCards);
+      if ((data as any).gameMasterId) setGameMasterId((data as any).gameMasterId);
     });
-    socket.on("gameStarted", (data) => {
+    const onGameStarted = (data: any) => {
       setCurrentPlayer(data.currentPlayer);
       if (data.deckCount !== undefined) {
         setDeckCount(data.deckCount);
@@ -134,7 +137,8 @@ const Game: React.FC<GameProps> = ({
         );
       }
       setEventLogs((prev) => [...prev, "ゲームが開始されました"]);
-    });
+    };
+    socket.on("gameStarted", onGameStarted);
 
     socket.on("roomUpdate", (data) => {
       console.log("roomUpdate players:", data.players);
@@ -146,6 +150,9 @@ const Game: React.FC<GameProps> = ({
             isEliminated: p.isEliminated ?? false,
           }))
         );
+      if ((data as any).gameMasterId) {
+        setGameMasterId((data as any).gameMasterId);
+      }
     });
 
     socket.on("initialHand", (hand) => {
@@ -252,7 +259,7 @@ const Game: React.FC<GameProps> = ({
     });
 
     return () => {
-      socket.off("gameStarted");
+      socket.off("gameStarted", onGameStarted);
       socket.off("roomUpdate");
       socket.off("initialHand");
       socket.off("cardDrawn");
