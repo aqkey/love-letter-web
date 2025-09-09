@@ -57,8 +57,14 @@ const Game: React.FC<GameProps> = ({
   const [deckCount, setDeckCount] = useState<number>(0);
   const [eventLogs, setEventLogs] = useState<string[]>([]);
   const eventLogsRef = useRef<string[]>([]);
+  const eventLogBoxRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
     eventLogsRef.current = eventLogs;
+    // 新規ログ追加時に最新まで自動スクロール
+    const box = eventLogBoxRef.current;
+    if (box) {
+      box.scrollTop = box.scrollHeight;
+    }
   }, [eventLogs]);
 
   // プレイヤーリスト（ターゲット選択用）
@@ -673,7 +679,10 @@ const Game: React.FC<GameProps> = ({
     
       <div className="mt-4 text-center">
         <h3 className="text-md font-bold mb-2">イベントログ</h3>
-        <div className="border rounded p-2 h-32 overflow-y-auto bg-amber-50 mx-auto max-w-md text-left">
+        <div
+          ref={eventLogBoxRef}
+          className="border rounded p-2 h-32 overflow-y-auto bg-amber-50 mx-auto max-w-md text-left"
+        >
           {eventLogs.map((log, index) => (
             <p key={index} className="text-sm">
               {log}
