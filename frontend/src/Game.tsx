@@ -142,7 +142,12 @@ const Game: React.FC<GameProps> = ({
           }))
         );
       }
-      setEventLogs((prev) => [...prev, "ゲームが開始されました"]);
+      setEventLogs((prev) => [
+        ...prev,
+        "ゲームが開始されました",
+        "-------------",
+        `${data.currentPlayer} さんのターンです`,
+      ]);
     };
     socket.on("gameStarted", onGameStarted);
 
@@ -193,7 +198,11 @@ const Game: React.FC<GameProps> = ({
 
     socket.on("nextTurn", (data) => {
       setCurrentPlayer(data.currentPlayer);
-      setEventLogs((prev) => [...prev, `${data.currentPlayer} さんのターンです`]);
+      setEventLogs((prev) => [
+        ...prev,
+        "-------------",
+        `${data.currentPlayer} さんのターンです`,
+      ]);
     });
 
     // 手札を見る（道化の効果）モーダル表示
