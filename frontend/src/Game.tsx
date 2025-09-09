@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { HowToContent } from "./HowTo";
 import socket from "./socket";
+import CutIn, { CutInItem } from "./components/CutIn";
 
 interface GameProps {
   setScreen: (screen: "lobby" | "game" | "result") => void;
@@ -60,6 +61,20 @@ const Game: React.FC<GameProps> = ({
   const [eventLogs, setEventLogs] = useState<string[]>([]);
   const eventLogsRef = useRef<string[]>([]);
   const eventLogBoxRef = useRef<HTMLDivElement | null>(null);
+  const [cutInQueue, setCutInQueue] = useState<CutInItem[]>([]);
+  const enqueueCutIn = (
+    title: string,
+    imageSrc?: string,
+    variant: CutInItem['variant'] = 'card'
+  ) => {
+    setCutInQueue((prev) => [
+      ...prev,
+      { id: Date.now() + Math.floor(Math.random() * 1000), title, imageSrc, variant },
+    ]);
+  };
+  const handleCutInDone = (id: number) => {
+    setCutInQueue((prev) => prev.filter((it) => it.id !== id));
+  };
   useEffect(() => {
     eventLogsRef.current = eventLogs;
     // 新規ログ追加時に最新まで自動スクロール
@@ -194,11 +209,19 @@ const Game: React.FC<GameProps> = ({
           ...prev,
           `${data.player} が ${name} を ${data.targetName} に使いました`,
         ]);
+        enqueueCutIn(
+          `${data.player} が ${name} を ${data.targetName} に使いました`,
+          `/cards/${data.card.enName}.svg`
+        );
       } else {
         setEventLogs((prev) => [
           ...prev,
           `${data.player} さんが ${data.card.name} を出しました`,
         ]);
+        enqueueCutIn(
+          `${data.player} が ${data.card.name} を使いました`,
+          `/cards/${data.card.enName}.svg`
+        );
       }
       if (data.playerId === socket.id) {
         setHand((prev) =>
@@ -231,6 +254,7 @@ const Game: React.FC<GameProps> = ({
       );
       setErrorMessage(`${name} さんが脱落しました`);
       setEventLogs((prev) => [...prev, `${name} さんが脱落しました`]);
+      enqueueCutIn(`${name}\n消えてしまった........`, undefined, 'danger');
       setTimeout(() => setErrorMessage(""), 3000);
     });
 
@@ -242,6 +266,7 @@ const Game: React.FC<GameProps> = ({
       );
       setErrorMessage(`${name} さんが復活しました`);
       setEventLogs((prev) => [...prev, `${name} さんが復活しました`]);
+      enqueueCutIn(`${name}\n復活`, undefined, 'success');
       setTimeout(() => setErrorMessage(""), 3000);
     });
 
@@ -425,7 +450,7 @@ const Game: React.FC<GameProps> = ({
       )}
 
       {/* プレイヤー別の場札一覧（プレイ順で上から並べる） */}
-      <div className="mt-4 rounded-lg p-3 bg-gradient-to-br from-stone-800 to-slate-900 text-amber-100 shadow-inner">
+      <div className="mt-4 rounded-lg p-3 bg-gradient-to-br from-stone-800 to-slate-900 text-amber-100 shadow-inner relative">
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-md font-bold">場に出たカード（プレイヤー別・プレイ順）</h3>
           <span className="text-sm opacity-90">山札残り枚数：{deckCount}</span>
@@ -485,6 +510,8 @@ const Game: React.FC<GameProps> = ({
             </ul>
           );
         })()}
+        {/* カードプレイ時のカットイン（このパネル上に重ねて表示） */}
+        <CutIn queue={cutInQueue} onDone={handleCutInDone} />
       </div>
 
       {/* 自分の手札 */}
