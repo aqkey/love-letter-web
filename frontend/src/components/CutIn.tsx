@@ -8,33 +8,31 @@ export type CutInItem = {
   variant?: 'card' | 'danger' | 'success';
 };
 
-type Props = {
-  queue: CutInItem[];
-  onDone: (id: number) => void;
-};
+type Props = { queue: CutInItem[]; onDone: (id: number) => void };
 
-const CutIn: React.FC<Props> = ({ queue, onDone }) => {
-  const item = queue[0];
-
+const ItemPanel: React.FC<{ item: CutInItem; onDone: (id: number) => void }> = ({ item, onDone }) => {
   useEffect(() => {
-    if (!item) return;
-    const timer = setTimeout(() => {
-      onDone(item.id);
-    }, 2400);
+    const timer = setTimeout(() => onDone(item.id), 2400);
     return () => clearTimeout(timer);
   }, [item, onDone]);
 
-  if (!item) return null;
-
   const panelClass = `${styles.panel} ${item.variant === 'danger' ? styles.danger : ''} ${item.variant === 'success' ? styles.success : ''}`.trim();
+  return (
+    <div className={panelClass}>
+      {item.imageSrc && <img src={item.imageSrc} alt="" className={styles.card} />}
+      <div className={styles.text}>{item.title}</div>
+    </div>
+  );
+};
 
+const CutIn: React.FC<Props> = ({ queue, onDone }) => {
+  if (!queue.length) return null;
   return (
     <div className={styles.overlay} aria-hidden>
-      <div className={panelClass}>
-        {item.imageSrc && (
-          <img src={item.imageSrc} alt="" className={styles.card} />
-        )}
-        <div className={styles.text}>{item.title}</div>
+      <div className={styles.stack}>
+        {queue.map((q) => (
+          <ItemPanel key={q.id} item={q} onDone={onDone} />
+        ))}
       </div>
     </div>
   );

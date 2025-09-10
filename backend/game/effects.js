@@ -24,6 +24,7 @@ function checkMinisterElimination(playerId, io) {
       player: player.name,
       card: ministerCard,
       playedCards: this.playedCards,
+      byElimination: true,
     });
 
     // 姫(眼鏡)所持ならここで即復活（残り手札の公開は行わない）
@@ -41,6 +42,7 @@ function checkMinisterElimination(playerId, io) {
         player: player.name,
         card: discarded,
         playedCards: this.playedCards,
+        byElimination: true,
       });
       // 大臣による捨て札でも効果を評価（例: 姫(爆弾)で即時決着）
       if (this.applyDiscardEffectsOnEliminated(playerId, discarded, io)) {
@@ -143,6 +145,7 @@ function discardRemainingHandOnElimination(playerId, io) {
       player: player.name,
       card: discarded,
       playedCards: this.playedCards,
+      byElimination: true,
     });
     if (this.applyDiscardEffectsOnEliminated(playerId, discarded, io)) {
       ended = true;

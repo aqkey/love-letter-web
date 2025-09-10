@@ -1,0 +1,48 @@
+.winnerBox {
+  position: relative;
+  display: inline-block;
+}
+
+.winnerTitle {
+  font-size: 2.25rem; /* ~text-3xl */
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  background: linear-gradient(90deg, #ffd54f, #ff8a65, #f06292, #ba68c8, #4fc3f7, #81c784, #ffd54f);
+  background-size: 400% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 4px 18px rgba(255, 215, 130, 0.55);
+  animation: shimmer 6s linear infinite, glow 2.4s ease-in-out infinite alternate;
+}
+
+.sparkles {
+  position: absolute;
+  inset: -6px;
+  pointer-events: none;
+  background-image:
+    radial-gradient(2px 2px at 20% 30%, rgba(255,255,255,0.9), rgba(255,255,255,0)),
+    radial-gradient(1.5px 1.5px at 70% 40%, rgba(255,255,255,0.8), rgba(255,255,255,0)),
+    radial-gradient(2.2px 2.2px at 40% 70%, rgba(255,255,255,0.9), rgba(255,255,255,0)),
+    radial-gradient(1.8px 1.8px at 85% 75%, rgba(255,255,255,0.85), rgba(255,255,255,0));
+  background-repeat: no-repeat;
+  mix-blend-mode: screen;
+  filter: drop-shadow(0 0 6px rgba(255,255,255,0.5));
+  animation: twinkle 2.2s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 100% 50%; }
+}
+
+@keyframes glow {
+  0% { text-shadow: 0 2px 10px rgba(255, 210, 120, 0.35); }
+  100% { text-shadow: 0 6px 20px rgba(255, 240, 200, 0.85); }
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0.6; transform: translateY(0px); }
+  50% { opacity: 1; transform: translateY(-1px); }
+}
+
