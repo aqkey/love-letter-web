@@ -3,6 +3,7 @@ import socket from "./socket";
 import Lobby from "./Lobby";
 import Game from "./Game";
 import HowTo from "./HowTo";
+import styles from "./Result.module.css";
 
 type CardDto = { id: number; name: string; enName: string; cost: number };
 type FinalHandEntry = { id: string; name: string; hand: CardDto[]; isEliminated?: boolean };
@@ -81,11 +82,16 @@ const App: React.FC = () => {
       )}
           {screen === "result" && (
         <div className="max-w-4xl mx-auto bg-white p-4 rounded shadow space-y-4 w-full">
-          <div>
+          <div className="text-center">
             {winner === "引き分け" ? (
               <h1 className="text-2xl mb-2">引き分けでした！</h1>
             ) : (
-              <h1 className="text-2xl mb-2">勝者: {winner} さん！</h1>
+              <div className={styles.winnerBox}>
+                <h1 className={`${styles.winnerTitle} mb-2`}>
+                  🏆 {winner} is winner!!
+                </h1>
+                <div className={styles.sparkles} aria-hidden></div>
+              </div>
             )}
           </div>
 
@@ -117,18 +123,20 @@ const App: React.FC = () => {
               {/* 左下: 場に出たカード履歴 */}
               <div className="border rounded p-3">
                 <h2 className="text-lg font-bold mb-2">場に出たカード履歴</h2>
-                <ul className="space-y-2">
-                  {finalPlayedCards.map((entry, index) => (
-                    <li key={index} className="flex items-center gap-2">
-                      <span className="w-24 shrink-0">{entry.player} さん:</span>
-                      <img
-                        src={`/cards/${entry.card.enName}.svg`}
-                        alt={entry.card.name}
-                        className="w-10 h-auto"
-                      />
-                    </li>
-                  ))}
-                </ul>
+                <div className="border rounded p-2 h-64 overflow-y-auto bg-gray-50">
+                  <ul className="space-y-2">
+                    {finalPlayedCards.map((entry, index) => (
+                      <li key={index} className="flex items-center gap-2">
+                        <span className="w-24 shrink-0">{entry.player} さん:</span>
+                        <img
+                          src={`/cards/${entry.card.enName}.svg`}
+                          alt={entry.card.name}
+                          className="w-10 h-auto"
+                        />
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               </div>
             </div>
 

@@ -406,11 +406,17 @@ class GameManager {
                   player: this.players[targetId].name,
                   card: discarded,
                 });
+                // 対象プレイヤーの手札表示を更新（残り1枚があればそれを表示）
+                if (this.players[targetId].hand[0]) {
+                  this.emitToPlayer(io, targetId, "replaceCard", this.players[targetId].hand[0]);
+                } else {
+                  // 残りが無い場合は空にする（replaceCardで空は送れないため、syncに任せる）
+                }
                 this.checkPrincessElimination(targetId, discarded, io);
               }
-              // 姫の捨て札で脱落した場合、姫(眼鏡)で復活している可能性がある
-              // 復活していない（依然として脱落状態）の場合のみ、魔術師の置き直しドローを行う
-              if (this.deck.length && this.players[targetId].isEliminated) {
+              // 復活している場合は既に1枚ドロー済みなので追加ドローしない。
+              // 脱落しておらず、手札が空になっている場合のみ置き直しドローを行う。
+              if (this.deck.length && !this.players[targetId].isEliminated && this.players[targetId].hand.length === 0) {
                 const newCard = this.deck.pop();
                 this.players[targetId].hand = [newCard];
                 this.emitToPlayer(io, targetId, "replaceCard", newCard);

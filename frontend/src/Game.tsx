@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { HowToContent } from "./HowTo";
 import socket from "./socket";
+import CutIn, { CutInItem } from "./components/CutIn";
 
 interface GameProps {
   setScreen: (screen: "lobby" | "game" | "result") => void;
@@ -37,6 +38,10 @@ interface CardPlayedData {
   player: string;
   card: Card;
   playedCards: PlayedCardEntry[];
+  targetPlayerId?: string | null;
+  targetName?: string | null;
+  guessCardName?: string | null;
+  byElimination?: boolean;
 }
 
 const Game: React.FC<GameProps> = ({
@@ -57,8 +62,59 @@ const Game: React.FC<GameProps> = ({
   const [deckCount, setDeckCount] = useState<number>(0);
   const [eventLogs, setEventLogs] = useState<string[]>([]);
   const eventLogsRef = useRef<string[]>([]);
+  const eventLogBoxRef = useRef<HTMLDivElement | null>(null);
+  // カード演出の最後の発火時刻、および終了予定時刻
+  const lastCardEffectRef = useRef<number>(0);
+  const cardEffectActiveUntilRef = useRef<number>(0);
+  // 脱落演出の待機キューとタイマー
+  const eliminationQueueRef = useRef<string[]>([]);
+  const eliminationTimerRef = useRef<number | null>(null);
+  const endTransitionTimerRef = useRef<number | null>(null);
+  // カード系カットインの再生時間（CutIn.module.css と同期）
+  const CUTIN_DURATION_MS = 2400; // CSS animation duration
+  const MIN_WAIT_FOR_CARD_MS = 50; // 次のcardPlayed到着をわずかに待つ
+
+  const scheduleEliminationEffects = () => {
+    // 既存タイマーをクリア
+    if (eliminationTimerRef.current) {
+      clearTimeout(eliminationTimerRef.current);
+      eliminationTimerRef.current = null;
+    }
+    if (eliminationQueueRef.current.length === 0) return;
+    const now = Date.now();
+    // カード演出が進行中ならその終了を待つ。無い場合も最小待機を入れて、直後に来るcardPlayedに追従できる猶予を作る。
+    const readyAt = Math.max(cardEffectActiveUntilRef.current, now + MIN_WAIT_FOR_CARD_MS);
+    const delay = Math.max(0, readyAt - now);
+    eliminationTimerRef.current = window.setTimeout(() => {
+      const name = eliminationQueueRef.current.shift();
+      if (name) enqueueCutIn(`${name}\n   脱  落...`, undefined, 'danger');
+      // まだ残っていれば次もスケジュール
+      if (eliminationQueueRef.current.length > 0) {
+        scheduleEliminationEffects();
+      }
+    }, delay) as unknown as number;
+  };
+  const [cutInQueue, setCutInQueue] = useState<CutInItem[]>([]);
+  const enqueueCutIn = (
+    title: string,
+    imageSrc?: string,
+    variant: CutInItem['variant'] = 'card'
+  ) => {
+    setCutInQueue((prev) => [
+      ...prev,
+      { id: Date.now() + Math.floor(Math.random() * 1000), title, imageSrc, variant },
+    ]);
+  };
+  const handleCutInDone = (id: number) => {
+    setCutInQueue((prev) => prev.filter((it) => it.id !== id));
+  };
   useEffect(() => {
     eventLogsRef.current = eventLogs;
+    // 新規ログ追加時に最新まで自動スクロール
+    const box = eventLogBoxRef.current;
+    if (box) {
+      box.scrollTop = box.scrollHeight;
+    }
   }, [eventLogs]);
 
   // プレイヤーリスト（ターゲット選択用）
@@ -136,7 +192,12 @@ const Game: React.FC<GameProps> = ({
           }))
         );
       }
-      setEventLogs((prev) => [...prev, "ゲームが開始されました"]);
+      setEventLogs((prev) => [
+        ...prev,
+        "ゲームが開始されました",
+        "-------------",
+        `${data.currentPlayer} さんのターンです`,
+      ]);
     };
     socket.on("gameStarted", onGameStarted);
 
@@ -174,10 +235,45 @@ const Game: React.FC<GameProps> = ({
     socket.on("cardPlayed", (data: CardPlayedData) => {
       if (!data || !data.card) return;
       setPlayedCards(data.playedCards);
-      setEventLogs((prev) => [
-        ...prev,
-        `${data.player} さんが ${data.card.name} を出しました`,
-      ]);
+      // 兵士（id:1）専用エフェクト（脱落中の自動捨て札では表示しない）
+      if (!data.byElimination && data.card.id === 1 && data.targetName && data.guessCardName) {
+        setEventLogs((prev) => [
+          ...prev,
+          `${data.player} さんが 兵士 を出した`,
+        ]);
+        lastCardEffectRef.current = Date.now();
+        cardEffectActiveUntilRef.current = lastCardEffectRef.current + CUTIN_DURATION_MS;
+        enqueueCutIn(`「${data.player}は兵士を使った」\n\n${data.targetName} は ${data.guessCardName} だ！！`, `/cards/${data.card.enName}.svg`);
+        // 新しいカード演出に合わせて、待機中の脱落演出を再スケジュール
+        if (eliminationQueueRef.current.length) scheduleEliminationEffects();
+      }
+      // 対象付きログ（道化=2, 騎士=3, 魔術師=5, 将軍=6）
+      else if ([2, 3, 5, 6].includes(data.card.id) && data.targetName) {
+        const name = data.card.name; // 表示名をそのまま使用
+        setEventLogs((prev) => [
+          ...prev,
+          `${data.player} が ${name} を ${data.targetName} に使いました`,
+        ]);
+        // エフェクト用テキスト: 「XXXは<カード名>を使った」\n↓\n<対象>
+        if (!data.byElimination) {
+          lastCardEffectRef.current = Date.now();
+          cardEffectActiveUntilRef.current = lastCardEffectRef.current + CUTIN_DURATION_MS;
+          enqueueCutIn(`「${data.player}は${name}を使った」\n↓\n${data.targetName}）`, `/cards/${data.card.enName}.svg`);
+          if (eliminationQueueRef.current.length) scheduleEliminationEffects();
+        }
+      } else {
+        setEventLogs((prev) => [
+          ...prev,
+          `${data.player} さんが ${data.card.name} を出した`,
+        ]);
+        // エフェクト用テキスト: 「XXXは<カード名>を使った」
+        if (!data.byElimination) {
+          lastCardEffectRef.current = Date.now();
+          cardEffectActiveUntilRef.current = lastCardEffectRef.current + CUTIN_DURATION_MS;
+          enqueueCutIn(`「${data.player}は${data.card.name}を使った」`, `/cards/${data.card.enName}.svg`);
+          if (eliminationQueueRef.current.length) scheduleEliminationEffects();
+        }
+      }
       if (data.playerId === socket.id) {
         setHand((prev) =>
           prev.filter((_, i) => i !== prev.findIndex((c) => c.id === data.card.id && c.name === data.card.name))
@@ -187,7 +283,11 @@ const Game: React.FC<GameProps> = ({
 
     socket.on("nextTurn", (data) => {
       setCurrentPlayer(data.currentPlayer);
-      setEventLogs((prev) => [...prev, `${data.currentPlayer} さんのターンです`]);
+      setEventLogs((prev) => [
+        ...prev,
+        "-------------",
+        `${data.currentPlayer} さんのターンです`,
+      ]);
     });
 
     // 手札を見る（道化の効果）モーダル表示
@@ -205,6 +305,9 @@ const Game: React.FC<GameProps> = ({
       );
       setErrorMessage(`${name} さんが脱落しました`);
       setEventLogs((prev) => [...prev, `${name} さんが脱落しました`]);
+      // 脱落演出はカード演出の終了後に出すため、キューへ追加してスケジュール
+      eliminationQueueRef.current.push(name);
+      scheduleEliminationEffects();
       setTimeout(() => setErrorMessage(""), 3000);
     });
 
@@ -216,6 +319,7 @@ const Game: React.FC<GameProps> = ({
       );
       setErrorMessage(`${name} さんが復活しました`);
       setEventLogs((prev) => [...prev, `${name} さんが復活しました`]);
+      enqueueCutIn(`${name}\n復活`, undefined, 'success');
       setTimeout(() => setErrorMessage(""), 3000);
     });
 
@@ -248,7 +352,10 @@ const Game: React.FC<GameProps> = ({
       setFinalRemovedCard(removedCard || null);
       // これまでの全ログをスナップショットして結果画面に渡す
       setFinalEventLogs([...eventLogsRef.current, `${winner} さんの勝利です`]);
-      setScreen("result");
+      // 余韻のため、一定時間後にリザルトへ遷移
+      const tid = window.setTimeout(() => setScreen("result"), 5000);
+      // @ts-ignore
+      endTransitionTimerRef.current = tid;
       setEventLogs((prev) => [...prev, `${winner} さんの勝利です`]);
     });
 
@@ -275,6 +382,16 @@ const Game: React.FC<GameProps> = ({
       socket.off("syncState");
       socket.off("soldierPlayed");
       socket.off("protectedByMonk");
+      // 残っている脱落演出タイマーをクリア
+      if (eliminationTimerRef.current) {
+        clearTimeout(eliminationTimerRef.current);
+        eliminationTimerRef.current = null;
+      }
+      // リザルト遷移タイマーのクリア
+      if (endTransitionTimerRef.current) {
+        clearTimeout(endTransitionTimerRef.current);
+        endTransitionTimerRef.current = null;
+      }
     };
   }, [roomId]);
 
@@ -399,7 +516,7 @@ const Game: React.FC<GameProps> = ({
       )}
 
       {/* プレイヤー別の場札一覧（プレイ順で上から並べる） */}
-      <div className="mt-4 rounded-lg p-3 bg-gradient-to-br from-stone-800 to-slate-900 text-amber-100 shadow-inner">
+      <div className="mt-4 rounded-lg p-3 bg-gradient-to-br from-stone-800 to-slate-900 text-amber-100 shadow-inner relative">
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-md font-bold">場に出たカード（プレイヤー別・プレイ順）</h3>
           <span className="text-sm opacity-90">山札残り枚数：{deckCount}</span>
@@ -459,6 +576,8 @@ const Game: React.FC<GameProps> = ({
             </ul>
           );
         })()}
+        {/* カードプレイ時のカットイン（このパネル上に重ねて表示） */}
+        <CutIn queue={cutInQueue} onDone={handleCutInDone} />
       </div>
 
       {/* 自分の手札 */}
@@ -673,7 +792,10 @@ const Game: React.FC<GameProps> = ({
     
       <div className="mt-4 text-center">
         <h3 className="text-md font-bold mb-2">イベントログ</h3>
-        <div className="border rounded p-2 h-32 overflow-y-auto bg-amber-50 mx-auto max-w-md text-left">
+        <div
+          ref={eventLogBoxRef}
+          className="border rounded p-2 h-32 overflow-y-auto bg-amber-50 mx-auto max-w-md text-left"
+        >
           {eventLogs.map((log, index) => (
             <p key={index} className="text-sm">
               {log}

@@ -31,6 +31,36 @@ test('first player draws a magician and eliminates opponent holding princess', a
   await context2.close();
 });
 
+// Sorcerer UI: target hand updates immediately on forced discard (with replacement draw)
+test('sorcerer forces discard and target UI shows replacement card', async ({ browser }) => {
+  const { context1, page1, context2, page2, roomName, playersPromise } = await createRoomAndJoinTwo(browser);
+  await startGameChooseFirst(page1, 'alice');
+
+  const players = await playersPromise;
+  const aliceId = players.find(p => p.name === 'alice').id;
+  const bobId = players.find(p => p.name === 'bob').id;
+
+  // Deck: after alice draws sorcerer(5), remaining deck is [1,1,3]; replacement draw pops last => 3 (騎士)
+  await postSetup(page1, roomName, [1,1,3,5], {
+    [aliceId]: [2],   // 道化（aliceは引いて魔術師を使う）
+    [bobId]: [1],     // 兵士（強制捨て → 置き直しで騎士に更新されるはず）
+  });
+  await sleep(300);
+
+  await page1.getByRole('button', { name: 'カードを引く' }).click();
+  await page1.getByRole('button', { name: '魔術師' }).click();
+  await page1.getByLabel('bob').check();
+  await sleep(200);
+  await page1.getByRole('button', { name: '決定' }).click();
+
+  // Target(bob) UI should update to show Knight (騎士)
+  await expect(page2.getByRole('img', { name: '騎士' })).toBeVisible();
+  // And should not show Soldier (兵士) anymore
+
+  await context1.close();
+  await context2.close();
+});
+
 
 // E2E scenario: deck [兵士,兵士,騎士,兵士],
 // initial hands: Player1 道化, Player2 僧侶,
