@@ -266,6 +266,7 @@ io.on("connection", (socket) => {
       // 対象付きログのため、対象名を決定（未指定=自分対象のカードにも対応）
       let tId = targetPlayerId || null;
       let tName = null;
+      let guessCardName = null;
       if (tId && game.players[tId]) {
         tName = game.players[tId].name;
       } else if (playedCard && [2, 3, 5, 6].includes(playedCard.id)) {
@@ -273,6 +274,13 @@ io.on("connection", (socket) => {
         tId = playerId;
         tName = game.players[playerId]?.name || null;
       }
+      // 兵士のときは推測カード名も付与しておく（ヒット/保護は soldierPlayed で通知済み）
+      try {
+        if (playedCard && playedCard.id === 1) {
+          const guessInfo = CARD_LIST.find((c) => c.id === guessCardId);
+          guessCardName = guessInfo ? guessInfo.name : null;
+        }
+      } catch (_) {}
       io.to(roomId).emit("cardPlayed", {
         playerId: playerId,
         player: game.players[playerId].name,
@@ -280,6 +288,7 @@ io.on("connection", (socket) => {
         playedCards: game.playedCards,
         targetPlayerId: tId,
         targetName: tName,
+        guessCardName,
       });
       io.to(roomId).emit("deckCount", { deckCount: game.deck.length });
       if (!playedCard) {

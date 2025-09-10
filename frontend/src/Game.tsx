@@ -40,6 +40,7 @@ interface CardPlayedData {
   playedCards: PlayedCardEntry[];
   targetPlayerId?: string | null;
   targetName?: string | null;
+  guessCardName?: string | null;
 }
 
 const Game: React.FC<GameProps> = ({
@@ -202,26 +203,30 @@ const Game: React.FC<GameProps> = ({
     socket.on("cardPlayed", (data: CardPlayedData) => {
       if (!data || !data.card) return;
       setPlayedCards(data.playedCards);
+      // 兵士（id:1）専用エフェクト
+      if (data.card.id === 1 && data.targetName && data.guessCardName) {
+        setEventLogs((prev) => [
+          ...prev,
+          `${data.player} さんが 兵士 を出した`,
+        ]);
+        enqueueCutIn(`「${data.player}は兵士を使った」\n\n${data.targetName} は ${data.guessCardName} だ！！`, `/cards/${data.card.enName}.svg`);
+      }
       // 対象付きログ（道化=2, 騎士=3, 魔術師=5, 将軍=6）
-      if ([2, 3, 5, 6].includes(data.card.id) && data.targetName) {
+      else if ([2, 3, 5, 6].includes(data.card.id) && data.targetName) {
         const name = data.card.name; // 表示名をそのまま使用
         setEventLogs((prev) => [
           ...prev,
           `${data.player} が ${name} を ${data.targetName} に使いました`,
         ]);
-        enqueueCutIn(
-          `${data.player} が ${name} を ${data.targetName} に使いました`,
-          `/cards/${data.card.enName}.svg`
-        );
+        // エフェクト用テキスト: 「XXXは<カード名>を使った」\n↓\n<対象>
+        enqueueCutIn(`「${data.player}は${name}を使った」\n↓\n${data.targetName}）`, `/cards/${data.card.enName}.svg`);
       } else {
         setEventLogs((prev) => [
           ...prev,
-          `${data.player} さんが ${data.card.name} を出しました`,
+          `${data.player} さんが ${data.card.name} を出した`,
         ]);
-        enqueueCutIn(
-          `${data.player} が ${data.card.name} を使いました`,
-          `/cards/${data.card.enName}.svg`
-        );
+        // エフェクト用テキスト: 「XXXは<カード名>を使った」
+        enqueueCutIn(`「${data.player}は${data.card.name}を使った」`, `/cards/${data.card.enName}.svg`);
       }
       if (data.playerId === socket.id) {
         setHand((prev) =>
@@ -254,7 +259,7 @@ const Game: React.FC<GameProps> = ({
       );
       setErrorMessage(`${name} さんが脱落しました`);
       setEventLogs((prev) => [...prev, `${name} さんが脱落しました`]);
-      enqueueCutIn(`${name}\n消えてしまった........`, undefined, 'danger');
+      enqueueCutIn(`${name}\nは消えてしまった...`, undefined, 'danger');
       setTimeout(() => setErrorMessage(""), 3000);
     });
 
