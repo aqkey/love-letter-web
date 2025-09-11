@@ -243,7 +243,7 @@ const Game: React.FC<GameProps> = ({
         ]);
         lastCardEffectRef.current = Date.now();
         cardEffectActiveUntilRef.current = lastCardEffectRef.current + CUTIN_DURATION_MS;
-        enqueueCutIn(`「${data.player}は兵士を使った」\n\n${data.targetName} は ${data.guessCardName} だ！！`, `/cards/${data.card.enName}.svg`);
+        enqueueCutIn(`${data.player}は兵士を使った\n\n「${data.targetName} は ${data.guessCardName} だ！！」`, `/cards/${data.card.enName}.svg`);
         // 新しいカード演出に合わせて、待機中の脱落演出を再スケジュール
         if (eliminationQueueRef.current.length) scheduleEliminationEffects();
       }
@@ -258,7 +258,7 @@ const Game: React.FC<GameProps> = ({
         if (!data.byElimination) {
           lastCardEffectRef.current = Date.now();
           cardEffectActiveUntilRef.current = lastCardEffectRef.current + CUTIN_DURATION_MS;
-          enqueueCutIn(`「${data.player}は${name}を使った」\n↓\n${data.targetName}）`, `/cards/${data.card.enName}.svg`);
+          enqueueCutIn(`${data.player}は${name}を使った\n↓\n${data.targetName}`, `/cards/${data.card.enName}.svg`);
           if (eliminationQueueRef.current.length) scheduleEliminationEffects();
         }
       } else {
