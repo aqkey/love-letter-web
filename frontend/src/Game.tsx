@@ -258,7 +258,7 @@ const Game: React.FC<GameProps> = ({
         if (!data.byElimination) {
           lastCardEffectRef.current = Date.now();
           cardEffectActiveUntilRef.current = lastCardEffectRef.current + CUTIN_DURATION_MS;
-          enqueueCutIn(`${data.player}は${name}を使った\n↓\n${data.targetName}`, `/cards/${data.card.enName}.svg`);
+          enqueueCutIn(`${data.player} は ${name} を使った\n↓\n${data.targetName}`, `/cards/${data.card.enName}.svg`);
           if (eliminationQueueRef.current.length) scheduleEliminationEffects();
         }
       } else {
@@ -270,7 +270,7 @@ const Game: React.FC<GameProps> = ({
         if (!data.byElimination) {
           lastCardEffectRef.current = Date.now();
           cardEffectActiveUntilRef.current = lastCardEffectRef.current + CUTIN_DURATION_MS;
-          enqueueCutIn(`「${data.player}は${data.card.name}を使った」`, `/cards/${data.card.enName}.svg`);
+          enqueueCutIn(`${data.player} は ${data.card.name} を使った`, `/cards/${data.card.enName}.svg`);
           if (eliminationQueueRef.current.length) scheduleEliminationEffects();
         }
       }
@@ -506,18 +506,13 @@ const Game: React.FC<GameProps> = ({
 
       {/* セクション2: （削除）ターン/山札残りの表示は場札セクションに統合 */}
 
-      {errorMessage && (
-        <p className="text-red-500 font-bold mb-2">{errorMessage}</p>
-      )}
-
-
       {/* 待機メッセージは「カードを引く」ボタンの直下に移動しました */}
 
       {/* プレイヤー別の場札一覧（プレイ順で上から並べる） */}
       <div className="mt-4 rounded-lg p-3 bg-gradient-to-br from-stone-800 to-slate-900 text-amber-100 shadow-inner relative">
         <div className="flex items-center justify-between mb-2">
-          <h3 className="text-md font-bold">場に出たカード（プレイヤー別・プレイ順）</h3>
-          <span className="text-sm opacity-90">山札残り枚数：{deckCount}</span>
+          <h3 className="text-md font-bold">場に出たカード</h3>
+          <span className="text-sm opacity-90">残り山札：{deckCount}</span>
         </div>
         {(() => {
           // プレイヤーごとの場札（各プレイヤー内の順はプレイ順）
@@ -538,7 +533,7 @@ const Game: React.FC<GameProps> = ({
           const orderedNames = [...orderFromPlays, ...remaining];
 
           return (
-            <ul className="space-y-2">
+            <ul className="divide-y divide-gray-600/40">
               {orderedNames.map((name) => {
                 const p = players.find((pp) => pp.name === name);
                 const isElim = Boolean(p?.isEliminated);
@@ -546,7 +541,7 @@ const Game: React.FC<GameProps> = ({
                 const rowClass = `${isElim ? "opacity-50 grayscale" : ""} ${isCurrent ? "scale-[1.02]" : ""}`;
                 const nameClass = `${isElim ? "text-gray-300" : ""} ${isCurrent ? "text-xl font-extrabold" : ""}`;
                 return (
-                  <li key={name} className={`flex items-center gap-3 ${rowClass}`}>
+                  <li key={name} className={`flex items-center gap-3 py-2 ${rowClass}`}>
                     <span className={`w-4 text-center ${isCurrent ? 'text-yellow-300' : 'text-transparent'}`}>▶︎</span>
                     <span className={`w-24 shrink-0 ${nameClass}`}>
                       {name} {isElim ? "(脱落)" : ""}
@@ -609,6 +604,13 @@ const Game: React.FC<GameProps> = ({
         >
           カードを引く
         </button>
+      )}
+
+      {/* エラーメッセージ（赤文字）もドローボタンの直下に配置 */}
+      {errorMessage && (
+        <div className="mt-2 mb-2">
+          <p className="text-center text-red-600 font-bold">{errorMessage}</p>
+        </div>
       )}
 
       {playerName !== currentPlayer && (
