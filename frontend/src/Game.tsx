@@ -516,10 +516,10 @@ const Game: React.FC<GameProps> = ({
 
       {/* プレイヤー別の場札一覧（プレイ順で上から並べる） */}
       <div className="mt-4 rounded-lg p-3 bg-gradient-to-br from-stone-800 to-slate-900 text-amber-100 shadow-inner relative">
-        <div className="flex items-center justify-between mb-2">
+        <div className="mb-1 text-center">
           <h3 className="text-md font-bold">場に出たカード</h3>
-          <span className="text-sm opacity-90">残り山札：{deckCount}</span>
         </div>
+        <div className="text-right text-sm opacity-90 mb-2">残り山札：{deckCount}</div>
         {(() => {
           // プレイヤーごとの場札（各プレイヤー内の順はプレイ順）
           const playedByPlayer = new Map<string, Card[]>();

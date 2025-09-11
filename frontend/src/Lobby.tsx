@@ -125,7 +125,7 @@ const Lobby: React.FC<LobbyProps> = ({
   }, [roomId]);
 
   return (
-    <div className="max-w-md mx-auto bg-white p-4 rounded shadow">
+    <div className="max-w-md mx-auto bg-amber-100 text-gray-900 p-4 rounded shadow ring-1 ring-amber-300/70">
       {/* タイトルロゴを中央寄せで、上下左右に余白を残して表示 */}
       <div className="w-full mb-3 flex items-center justify-center px-1">
         <img
@@ -144,7 +144,7 @@ const Lobby: React.FC<LobbyProps> = ({
           type="text"
           value={playerName}
           onChange={(e) => setPlayerName(e.target.value)}
-          className="border rounded w-full p-2 mt-1"
+          className="border rounded w-full p-2 mt-1 bg-white text-gray-900"
         />
       </label>
       <label className="block mb-4">
@@ -153,32 +153,32 @@ const Lobby: React.FC<LobbyProps> = ({
           type="text"
           value={roomId}
           onChange={(e) => setRoomId(e.target.value)}
-          className="border rounded w-full p-2 mt-1"
+          className="border rounded w-full p-2 mt-1 bg-white text-gray-900"
         />
       </label>
       <button
         onClick={handleCreateRoom}
         disabled={!playerName || !roomId}
-        className="bg-blue-500 text-white px-4 py-2 rounded w-full mb-2"
+        className="bg-blue-900 text-white px-4 py-2 rounded w-full mb-2"
       >
         部屋を作る
       </button>
       <button
         onClick={handleJoinRoom}
         disabled={!playerName || !roomId}
-        className="bg-blue-500 text-white px-4 py-2 rounded w-full mb-2"
+        className="bg-blue-900 text-white px-4 py-2 rounded w-full mb-2"
       >
         入室
       </button>
       <button
         onClick={handleClearSession}
-        className="bg-red-500 text-white px-4 py-2 rounded w-full mb-2"
+        className="bg-gray-600 text-white px-4 py-2 rounded w-full mb-2"
       >
         セッションクリア
       </button>
       <button
         onClick={() => setScreen("howto")}
-        className="bg-purple-500 text-white px-4 py-2 rounded w-full mb-2"
+        className="bg-purple-900 text-white px-4 py-2 rounded w-full mb-2"
       >
         ルール説明
       </button>
@@ -193,7 +193,7 @@ const Lobby: React.FC<LobbyProps> = ({
         <p>2人以上でゲーム開始できます</p>
       )}
 
-      <div className="mt-4">
+      <div className="mt-4 border border-gray-300 rounded p-3">
         <h3 className="text-md font-bold mb-2">現在の参加者</h3>
         <ul className="list-disc list-inside">
           {players.map((p, index) => (
