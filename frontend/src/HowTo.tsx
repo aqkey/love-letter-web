@@ -31,6 +31,7 @@ export const HowToContent: React.FC = () => {
       <div className="space-y-2">
         <h2 className="text-xl font-semibold">基本の流れ</h2>
         <ol className="list-decimal list-inside space-y-1">
+          <li>最初にプレイヤーには1枚手札が配られる。</li>
           <li>自分のターン開始時、山札から1枚引き、手札が2枚になる。</li>
           <li>どちらか1枚を場に出し、カードの効果を解決する。</li>
           <li>次のプレイヤーにターンが移る。</li>
