@@ -511,9 +511,7 @@ const Game: React.FC<GameProps> = ({
       )}
 
 
-      {playerName !== currentPlayer && (
-        <p className="mb-4">相手のターンです。お待ちください...</p>
-      )}
+      {/* 待機メッセージは「カードを引く」ボタンの直下に移動しました */}
 
       {/* プレイヤー別の場札一覧（プレイ順で上から並べる） */}
       <div className="mt-4 rounded-lg p-3 bg-gradient-to-br from-stone-800 to-slate-900 text-amber-100 shadow-inner relative">
@@ -611,6 +609,12 @@ const Game: React.FC<GameProps> = ({
         >
           カードを引く
         </button>
+      )}
+
+      {playerName !== currentPlayer && (
+        <div className="mt-2 mb-2">
+          <p className="text-center text-gray-800">相手のターンです。お待ちください...</p>
+        </div>
       )}
 
       {/* ターゲット選択モーダル（道化・騎士用） */}
