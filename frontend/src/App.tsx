@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import socket from "./socket";
 import Lobby from "./Lobby";
 import Game from "./Game";
 import HowTo from "./HowTo";
 import styles from "./Result.module.css";
+import TieBreakerModal from "./components/TieBreakerModal";
 
 type CardDto = { id: number; name: string; enName: string; cost: number };
 type FinalHandEntry = { id: string; name: string; hand: CardDto[]; isEliminated?: boolean };
@@ -41,7 +42,7 @@ const App: React.FC = () => {
     setScreen("lobby");
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     const onAppGameStarted = () => {
       setScreen("game");
     };
@@ -50,6 +51,35 @@ const App: React.FC = () => {
       socket.off("gameStarted", onAppGameStarted);
     };
   }, []);
+
+  // 引き分け用ミニゲーム（リザルト表示から7秒後）
+  const [showTie, setShowTie] = useState(false);
+  const [tieCandidates, setTieCandidates] = useState<string[]>([]);
+  const tieTimerRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (screen === 'result' && winner === '引き分け') {
+      if (tieTimerRef.current) clearTimeout(tieTimerRef.current);
+      tieTimerRef.current = window.setTimeout(() => {
+        // 生存者のうち、最大手札コストが同率トップのプレイヤーのみ候補
+        const survivors = finalHands.filter(h => !h.isEliminated);
+        const withMax = survivors.map(p => ({
+          name: p.name,
+          maxCost: p.hand.reduce((m, c) => (c.cost > m ? c.cost : m), 0),
+        }));
+        if (withMax.length === 0) return;
+        const highest = Math.max(...withMax.map(x => x.maxCost));
+        const candidates = withMax.filter(x => x.maxCost === highest).map(x => x.name);
+        setTieCandidates(candidates);
+        if (candidates.length >= 2) setShowTie(true);
+      }, 7000) as unknown as number;
+    }
+    return () => {
+      if (tieTimerRef.current) {
+        clearTimeout(tieTimerRef.current);
+        tieTimerRef.current = null;
+      }
+    };
+  }, [screen, winner, finalHands]);
 
   return (
     <div className="min-h-screen flex items-center justify-center">
@@ -302,6 +332,16 @@ const App: React.FC = () => {
                 </div>
               </div>
             </div>
+          )}
+          {showTie && (
+            <TieBreakerModal
+              candidates={tieCandidates}
+              onDecide={(name) => {
+                setShowTie(false);
+                setWinner(name);
+              }}
+              onClose={() => setShowTie(false)}
+            />
           )}
         </div>
       )}
