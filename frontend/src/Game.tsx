@@ -147,6 +147,12 @@ const Game: React.FC<GameProps> = ({
     { id: 12, name: "姫(爆弾)", enName: "princess_bomb", cost: 8 },
   ];
 
+  // 兵士の宣言用オプションは、姫ファミリー(8/9/12)を1つに統合して表示する
+  const SOLDIER_GUESS_OPTIONS: Card[] = useMemo(() => {
+    // 基本は全カードから 姫(眼鏡)=9, 姫(爆弾)=12 を除去し、姫(8)のみ残す
+    return CARD_OPTIONS.filter(c => ![9, 12].includes(c.id));
+  }, []);
+
   // 手札を見るモーダル
   const [showSeeHandModal, setShowSeeHandModal] = useState(false);
   const [seeHandInfo, setSeeHandInfo] = useState<{ targetName: string; card: Card } | null>(null);
@@ -673,7 +679,7 @@ const Game: React.FC<GameProps> = ({
             <div className="mb-2">
               <p className="mb-1">宣言するカード</p>
               <ul>
-                {CARD_OPTIONS.map((c) => (
+                {SOLDIER_GUESS_OPTIONS.map((c) => (
                   <li key={c.id} className="mb-1">
                     <label className="flex items-center gap-2">
                       <input

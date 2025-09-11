@@ -127,7 +127,8 @@ const Lobby: React.FC<LobbyProps> = ({
   return (
     <div className="max-w-md mx-auto bg-white p-4 rounded shadow">
       <div className="w-full flex items-center justify-center mb-3">
-        <img src="/logo512.png" alt="Love Letter" className="h-16 w-16" />
+        {/* 横長タイトルロゴ（存在しない場合は public に title_logo.png を配置） */}
+        <img src="/title_logo.png" alt="Love Letter" className="h-16 w-auto max-w-full" />
       </div>
       <h1 className="text-2xl mb-4 text-center">ロビー</h1>
       {errorMessage && (
