@@ -2,15 +2,20 @@ const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 const cors = require("cors");
+const path = require("path");
 const GameManager = require("./game/GameManager");
 const { CARD_LIST } = GameManager;
 
 const app = express();
 app.use(express.json());
 const server = http.createServer(app);
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(",")
+  : "*"; // サーバ配置時は同一オリジン想定のため許可を緩める
+
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:3000",
+    origin: allowedOrigins,
     methods: ["GET", "POST"],
   },
 });
@@ -52,55 +57,167 @@ app.post("/test/setup", (req, res) => {
 io.on("connection", (socket) => {
   console.log("A user connected:", socket.id);
 // if room is not exist, create new room. else, enter existing room.
-  socket.on("createRoom", async ({ roomId, name }) => {
+  socket.on("createRoom", async ({ roomId, name, playerId }) => {
     if (!games[roomId]) {
       games[roomId] = new GameManager(roomId);
       console.log("Room created:", roomId);
     }
-    const success = games[roomId].addPlayer(socket.id, name);
-    if (success) {
+    const game = games[roomId];
+
+    // Reconnect if playerId exists
+    if (playerId && game.players[playerId]) {
+      const oldPlayer = game.players[playerId];
+      delete game.players[playerId];
+      const idx = game.turnOrder.indexOf(playerId);
+      if (idx !== -1) {
+        game.turnOrder[idx] = socket.id;
+      }
+      oldPlayer.id = socket.id;
+      game.players[socket.id] = oldPlayer;
       socket.join(roomId);
-      const tmp = socket.id//後で消す
-      const roomSockets = await io.in(roomId).fetchSockets();
-      const userList = roomSockets.map((s) => s.id);
-      console.log(`Room ${roomId} に現在joinしているユーザー一覧:`, userList);
-      console.log(`追加したプレイヤーは:`, games[roomId].players[tmp].id);
+      socket.emit("playerId", socket.id);
+      socket.emit("rejoinSuccess");
       io.to(roomId).emit("roomUpdate", {
-        players: Object.values(games[roomId].players).map((p) => ({
+        players: Object.values(game.players).map((p) => ({
           id: p.id,
           name: p.name,
           isEliminated: p.isEliminated,
           isProtected: p.isProtected,
-          ishasDrawnCard: p.ishasDrawnCard
+          ishasDrawnCard: p.ishasDrawnCard,
         })),
+      });
+      return;
+    }
+
+    const success = game.addPlayer(socket.id, name);
+    if (success) {
+      game.gameMasterId = socket.id;
+      socket.join(roomId);
+      const tmp = socket.id; //後で消す
+      const roomSockets = await io.in(roomId).fetchSockets();
+      const userList = roomSockets.map((s) => s.id);
+      console.log(`Room ${roomId} に現在joinしているユーザー一覧:`, userList);
+      console.log(`追加したプレイヤーは:`, game.players[tmp].id);
+      socket.emit("playerId", socket.id);
+      io.to(roomId).emit("roomUpdate", {
+        players: Object.values(game.players).map((p) => ({
+          id: p.id,
+          name: p.name,
+          isEliminated: p.isEliminated,
+          isProtected: p.isProtected,
+          ishasDrawnCard: p.ishasDrawnCard,
+        })),
+        gameMasterId: game.gameMasterId,
       });
     }
   });
 
-  socket.on("startGame", ({ roomId }) => {
+  socket.on("joinRoom", async ({ roomId, name, playerId }) => {
     const game = games[roomId];
-    logPlayerHands(game);
-    if (game) {
-      game.startGame();
-      // 各プレイヤーに自分の手札を送信
-      Object.keys(game.players).forEach(playerId => {
-      const player = game.players[playerId];
-      io.to(playerId).emit("initialHand", player.hand);
-      });
+    if (!game) {
+      socket.emit("errorMessage", "Room not found");
+      return;
+    }
 
-      // 全員にゲーム開始通知
-      const currentPlayerId = game.getCurrentPlayerId();
-      io.to(roomId).emit("gameStarted", {
+    // Reconnect if playerId exists
+    if (playerId && game.players[playerId]) {
+      const oldPlayer = game.players[playerId];
+      delete game.players[playerId];
+      const idx = game.turnOrder.indexOf(playerId);
+      if (idx !== -1) {
+        game.turnOrder[idx] = socket.id;
+      }
+      oldPlayer.id = socket.id;
+      game.players[socket.id] = oldPlayer;
+      if (game.gameMasterId === playerId) {
+        game.gameMasterId = socket.id;
+      }
+      socket.join(roomId);
+      socket.emit("playerId", socket.id);
+      socket.emit("rejoinSuccess");
+      io.to(roomId).emit("roomUpdate", {
         players: Object.values(game.players).map((p) => ({
           id: p.id,
           name: p.name,
-          handCount: p.hand.length,
+          isEliminated: p.isEliminated,
+          isProtected: p.isProtected,
+          ishasDrawnCard: p.ishasDrawnCard,
         })),
-        currentPlayer: game.players[currentPlayerId].name,
-        deckCount: game.deck.length,
+        gameMasterId: game.gameMasterId,
       });
-        console.log("Game Start:", game.players[currentPlayerId].name);
+      return;
     }
+
+    const success = game.addPlayer(socket.id, name);
+    if (success) {
+      socket.join(roomId);
+      const tmp = socket.id; //後で消す
+      const roomSockets = await io.in(roomId).fetchSockets();
+      const userList = roomSockets.map((s) => s.id);
+      console.log(`Room ${roomId} に現在joinしているユーザー一覧:`, userList);
+      console.log(`追加したプレイヤーは:`, game.players[tmp].id);
+      socket.emit("playerId", socket.id);
+      io.to(roomId).emit("roomUpdate", {
+        players: Object.values(game.players).map((p) => ({
+          id: p.id,
+          name: p.name,
+          isEliminated: p.isEliminated,
+          isProtected: p.isProtected,
+          ishasDrawnCard: p.ishasDrawnCard,
+        })),
+        gameMasterId: game.gameMasterId,
+      });
+    }
+  });
+
+  socket.on("startGame", ({ roomId, orderMode, firstPlayerId, turnOrder }) => {
+    const game = games[roomId];
+    if (!game || socket.id !== game.gameMasterId) return;
+    logPlayerHands(game);
+    game.startGame({ orderMode, firstPlayerId, turnOrder });
+    // 各プレイヤーに自分の手札を送信
+    Object.keys(game.players).forEach(playerId => {
+      const player = game.players[playerId];
+      io.to(playerId).emit("initialHand", player.hand);
+    });
+
+    // 全員にゲーム開始通知
+    const currentPlayerId = game.getCurrentPlayerId();
+    io.to(roomId).emit("gameStarted", {
+      players: Object.values(game.players).map((p) => ({
+        id: p.id,
+        name: p.name,
+        handCount: p.hand.length,
+      })),
+      currentPlayer: game.players[currentPlayerId].name,
+      deckCount: game.deck.length,
+    });
+    console.log("Game Start:", game.players[currentPlayerId].name);
+  });
+
+  // ゲームマスター専用: もう一度遊ぶ（即時再開用：同じメンバー、順番は指定モードに従う）
+  socket.on("restartGame", ({ roomId, orderMode = 'random', firstPlayerId, turnOrder }) => {
+    const game = games[roomId];
+    if (!game || socket.id !== game.gameMasterId) return;
+    logPlayerHands(game);
+    game.startGame({ orderMode, firstPlayerId, turnOrder });
+    // 各プレイヤーに自分の手札を送信
+    Object.keys(game.players).forEach(playerId => {
+      const player = game.players[playerId];
+      io.to(playerId).emit("initialHand", player.hand);
+    });
+    // 全員にゲーム開始通知
+    const currentPlayerId = game.getCurrentPlayerId();
+    io.to(roomId).emit("gameStarted", {
+      players: Object.values(game.players).map((p) => ({
+        id: p.id,
+        name: p.name,
+        handCount: p.hand.length,
+      })),
+      currentPlayer: game.players[currentPlayerId].name,
+      deckCount: game.deck.length,
+    });
+    console.log("Game Restart:", game.players[currentPlayerId].name);
   });
 
   socket.on("drawCard", ({ roomId }) => {
@@ -146,11 +263,32 @@ io.on("connection", (socket) => {
       }
       const playedCard = game.playCard(playerId, cardIndex, targetPlayerId, guessCardId, io);
       logPlayerHands(game,roomId);
+      // 対象付きログのため、対象名を決定（未指定=自分対象のカードにも対応）
+      let tId = targetPlayerId || null;
+      let tName = null;
+      let guessCardName = null;
+      if (tId && game.players[tId]) {
+        tName = game.players[tId].name;
+      } else if (playedCard && [2, 3, 5, 6].includes(playedCard.id)) {
+        // 道化/騎士/魔術師/将軍は対象付きログにする。未指定時は自分対象とみなす
+        tId = playerId;
+        tName = game.players[playerId]?.name || null;
+      }
+      // 兵士のときは推測カード名も付与しておく（ヒット/保護は soldierPlayed で通知済み）
+      try {
+        if (playedCard && playedCard.id === 1) {
+          const guessInfo = CARD_LIST.find((c) => c.id === guessCardId);
+          guessCardName = guessInfo ? guessInfo.name : null;
+        }
+      } catch (_) {}
       io.to(roomId).emit("cardPlayed", {
         playerId: playerId,
         player: game.players[playerId].name,
         card: playedCard,
         playedCards: game.playedCards,
+        targetPlayerId: tId,
+        targetName: tName,
+        guessCardName,
       });
       io.to(roomId).emit("deckCount", { deckCount: game.deck.length });
       if (!playedCard) {
@@ -169,6 +307,26 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {
     console.log("A user disconnected:", socket.id);
     // TODO: プレイヤー削除処理
+  });
+  
+  socket.on("requestSync", ({ roomId }) => {
+    const game = games[roomId];
+    if (!game) return;
+    const player = game.players[socket.id];
+    if (!player) return;
+    const currentPlayerId = game.getCurrentPlayerId();
+    socket.emit("syncState", {
+      hand: player.hand,
+      players: Object.values(game.players).map((p) => ({
+        id: p.id,
+        name: p.name,
+        isEliminated: p.isEliminated,
+      })),
+      currentPlayer: game.players[currentPlayerId].name,
+      deckCount: game.deck.length,
+      playedCards: game.playedCards,
+      gameMasterId: game.gameMasterId,
+    });
   });
 });
 
@@ -190,7 +348,23 @@ function logPlayerHands(game) {
   console.log("=========================================");
 }
 
-const PORT = 4000;
+const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => {
-  console.log(`Server listening on http://localhost:${PORT}`);
+  console.log(`Server listening on port ${PORT}`);
 });
+
+// フロントエンドのビルド成果物を配信（存在する場合）
+const buildPath = path.join(__dirname, "../frontend/build");
+try {
+  const fs = require("fs");
+  if (fs.existsSync(buildPath)) {
+    app.use(express.static(buildPath));
+    // Express v5 では正規表現でのキャッチオールを使用
+    app.get(/.*/, (req, res) => {
+      // E2EやAPI系は先にマッチしている想定。残りはSPAへフォールバック
+      res.sendFile(path.join(buildPath, "index.html"));
+    });
+  }
+} catch (e) {
+  console.warn("Static build serving disabled:", e?.message || e);
+}
